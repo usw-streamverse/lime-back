@@ -1,0 +1,18 @@
+{
+  "name": "lime-back",
+  "version": "1.0.0",
+  "description": "",
+  "main": "limeapp.js",
+  "scripts": {
+    "_comment": "start: node lime.js  < 원래 쓰는 것. nodemon app은 테스트 할때 서버 껐다켰다 불편해서 잠시 쓰는 것.",
+    "start": "nodemon limeapp" 
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
