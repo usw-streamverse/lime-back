@@ -9,8 +9,8 @@ router.get('/', (req, res) => {
 });
 
 router.post('/login', (req, res) => {
-    const userid = req.query.id;
-    const userpwd = req.query.password;
+    const userid = req.body.id;
+    const userpwd = req.body.password;
 
     db.query('SELECT * FROM user WHERE userid = ? AND userpwd = ?', [userid, userpwd], 
     (error, result, fileds) => {
@@ -31,9 +31,9 @@ router.post('/login', (req, res) => {
 
 router.post('/register', (req, res) => {
     //id, password, nickname 유효성 검사 추가해야 됨!!!
-    const userid = req.query.id;
-    const userpwd = req.query.password;
-    const nickname = req.query.nickname;
+    const userid = req.body.id;
+    const userpwd = req.body.password;
+    const nickname = req.body.nickname;
 
     db.query('SELECT * FROM user WHERE userid = ?', [userid], 
     (error, result, fileds) => {
