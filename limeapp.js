@@ -1,7 +1,11 @@
 const express = require('express'); //익스프레스 모듈 삽입
 const app = express();
-require('dotenv').config();
 const authRouter = require('./routes/auth');
+
+require('dotenv').config();
+
+app.use(require('cors')());
+
 app.set('port',process.env.PORT || 3000); //process.env에 포트속성이 있다면 사용, 아니라면 3000.
 
 app.use('/auth', authRouter);
