@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/db.js');
+const jwt = require('jsonwebtoken');
+const jwt_config = require('../config/jwt.js');
 
 router.get('/', (req, res) => {
     res.status(200).json({
@@ -32,9 +34,15 @@ router.post('/login', (req, res) => {
     (error, result) => {
         if(error) throw error;
         if(result.length > 0) {
+
+            const token = jwt.sign({
+                'id': userid
+            }, jwt_config.secretKey, jwt_config.option);
+
             res.status(200).json({
                 'success': true,
-                'code': 1 // 로그인 성공
+                'code': 1, // 로그인 성공
+                'token': token
             });
         }else{
             res.status(401).json({
