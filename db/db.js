@@ -25,3 +25,5 @@ conn.connect(
 });
 
 module.exports = conn;
+
+module.exports = conn;
