@@ -30,8 +30,22 @@ router.get('/profile', auth, (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
-    res.send(`Hello, ${req.params.id}!`);
-    console.log(req.params, req.query);
+    db.query('SELECT * FROM user WHERE userid = ?', [req.params.id], 
+    (error, result) => {
+        if(error) throw error;
+        if(result.length) {
+            res.status(200).json({
+                'success': true,
+                'id': result[0].id,
+                'userid': result[0].userid,
+                'nickname': result[0].nickname
+            });
+        } else {
+            res.status(404).json({
+                'success': false
+            })
+        }
+    });
 });
 
 
