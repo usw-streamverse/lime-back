@@ -36,7 +36,8 @@ router.post('/login', (req, res) => {
         if(result.length > 0) {
 
             const token = jwt.sign({
-                'id': userid
+                'id': result[0].id,
+                'userid': result[0].userid
             }, jwt_config.secretKey, jwt_config.option);
 
             res.status(200).json({
