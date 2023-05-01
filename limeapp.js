@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.set('port',process.env.PORT || 3000); //process.env에 포트속성이 있다면 사용, 아니라면 3000.
 
 app.use('/', require('./routes/main')); //메인페이지
-app.use('/users', auth, require('./routes/users')); //유저페이지
+app.use('/users', require('./routes/users')); //유저페이지
 app.use('/auth', require('./routes/auth')); //로그인페이지
 
 app.use((req, res, nest) => { //찾을 수 없다면.

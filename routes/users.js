@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db/db.js');
 const router = express.Router();
+const auth = require('../middlewares/auth');
 
 router.get('/', (req, res) => {
     res.status(200).json({
@@ -8,7 +9,7 @@ router.get('/', (req, res) => {
     })
 });
 
-router.get('/profile', (req, res) => {
+router.get('/profile', auth, (req, res) => {
     /*
         로그인한 자기 자신의 정보를 출력
         로그인 유지에 사용됨
