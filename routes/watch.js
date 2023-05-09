@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
     })
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', (req, res) => { 
     // DB에서 동영상 URL 가져오기
     const id = req.params.id;
     const sql = 'SELECT url FROM video WHERE id = ?';
