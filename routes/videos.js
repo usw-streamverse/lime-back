@@ -25,7 +25,7 @@ router.post('/', auth, upload.any('video'), (req, res) => {
     if(req.files){
         res.status(200).json({
             success: true,
-            files: req.files
+            ...req.files[0]
         });
     } else {
         res.status(404).json(
