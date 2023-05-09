@@ -28,6 +28,6 @@ router.get('/:id', (req, res) => {
         res.setHeader('Content-Type', 'video/mp4');
         res.setHeader('Content-Length', '1024');
         res.setHeader('Accept-Ranges', 'bytes');
-        const stream = request(videoUrl).pipe(res);
+        const stream = request(videoUrl).pipe(res); //videoUrl이 스토리지 가르키는 주소라서, 차후 스토리지 접근하는 메소드를 추가해줘야가능.
     });
 });
