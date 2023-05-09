@@ -42,6 +42,9 @@ router.post('/login', (req, res) => {
 
             res.status(200).json({
                 'success': true,
+                'id': result[0].id,
+                'userid': result[0].userid,
+                'nickname': result[0].nickname,
                 'code': 1, // 로그인 성공
                 'token': token
             });
