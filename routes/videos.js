@@ -17,6 +17,16 @@ const containerClient = blobServiceClient.getContainerClient('lime');
 
 if(!fs.existsSync('storage')) fs.mkdirSync('storage');
 
+const toSec = (str) => { 
+    var p = str.split(':'),
+        s = 0, m = 1;
+    while (p.length > 0) {
+        s += m * parseInt(p.pop(), 10);
+        m *= 60;
+    }
+    return s;
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'storage')
@@ -59,8 +69,9 @@ router.post('/', auth, (req, res) => {
                 return;
             }
         }
-        
         const tempFolder = `storage/${req.file.filename}_`;
+        let duration = 0;
+
         if(!fs.existsSync(tempFolder))
             fs.mkdirSync(tempFolder, { recursive: true });
         ffmpeg(req.file.path)
@@ -83,27 +94,42 @@ router.post('/', auth, (req, res) => {
                     success: false
                 })
             })
+            .on('codecData', (data) => {
+                duration = toSec(data.duration);
+            })
             .on('end', async () => {
+                console.log('end');
                 if(fs.existsSync(`storage/${req.file.filename}`))
                     fs.unlinkSync(`storage/${req.file.filename}`);
+
+                let urls = {m3u8: '', segments: []};
                 
                 let blockBlobClient = containerClient.getBlockBlobClient(`${req.file.filename}.m3u8`);
                 let uploadBlobResponse = await blockBlobClient.uploadFile(`${tempFolder}/result.m3u8`);
                 
-                fs.readdir(tempFolder, (err, fileList) => {
-                    fileList.forEach(async (e) => {
-                        if(e.split('.')[1] === 'ts'){
-                            let blockBlobClient = containerClient.getBlockBlobClient(e);
-                            let uploadBlobResponse = await blockBlobClient.uploadFile(`${tempFolder}/${e}`);
-                        }
-                    })
-                })
+                urls.m3u8 = blockBlobClient.url;
 
-                console.log(blockBlobClient.url);
-
-                res.status(200).json({
-                    success: true
-                })
+                let fileList = fs.readdirSync(tempFolder);
+                for(const e of fileList){
+                    if(e.split('.')[1] === 'ts'){
+                        let blockBlobClient = containerClient.getBlockBlobClient(e);
+                        let uploadBlobResponse = await blockBlobClient.uploadFile(`${tempFolder}/${e}`);
+                        urls.segments.push(blockBlobClient.url);
+                    }
+                };
+                db.query('INSERT INTO video (url, own_channel, duration, title, explanation, image) VALUES (?,?,?,?,?,?);', [JSON.stringify(urls), req.id, duration, '테스트', '테스트입니다.', 'https://test/1.png'],
+                (error) => {
+                    if(error){
+                        res.status(500).json({
+                            success: false
+                        })  
+                    }else{
+                        res.status(200).json({
+                            m3u8: urls.m3u8,
+                            success: true
+                        })
+                    } 
+                });
             })
             .run();
     });
