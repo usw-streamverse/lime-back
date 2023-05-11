@@ -6,12 +6,14 @@ const auth = require('../middlewares/auth');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const router = express.Router();
-const MulterAzureStorage = require('multer-azure-blob-storage').MulterAzureStorage;
+const { BlobServiceClient } = require('@azure/storage-blob');
 
-const connection = process.env.STORAGE_CONNECTION_STRING;
-const accessKey = process.env.AZURE_STORAGE_ACCOUNT_ACCESS_KEY;
 const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-const containerName = 'lime';
+if (!accountName) throw Error('Azure Storage accountName not found');
+
+const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING || "";
+const blobServiceClient = BlobServiceClient.fromConnectionString(STORAGE_CONNECTION_STRING);
+const containerClient = blobServiceClient.getContainerClient('lime');
 
 if(!fs.existsSync('storage')) fs.mkdirSync('storage');
 
@@ -22,18 +24,6 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => {
         cb(null, file.fieldname + '-' + Date.now())
     }
-});
-
-const azureStorage = new MulterAzureStorage({
-    connectionString: connection,
-    accessKey: accessKey,
-    accountName: accountName,
-    containerName: containerName,
-    urlExpirationTime: 60
-});
-    
-const upload = multer({
-    storage : azureStorage
 });
 
 const localUpload = multer({
@@ -80,22 +70,37 @@ router.post('/', auth, (req, res) => {
                 '-hls_list_size 0',
                 '-hls_playlist_type vod',
                 '-hls_flags split_by_time',
-                '-hls_base_url http://localhost:3000/',
-                `-hls_segment_filename ${tempFolder}/%d.ts`
+                '-hls_base_url https://svlimestorage.blob.core.windows.net/lime/',
+                `-hls_segment_filename ${tempFolder}/${req.file.filename}-%d.ts`
             ])
             .output(`${tempFolder}/result.m3u8`)
             .on('error', () => {
                 if(fs.existsSync(`storage/${req.file.filename}`))
                     fs.unlinkSync(`storage/${req.file.filename}`);
-                if(fs.existsSync(`storage/${req.file.filename}_`))
-                    fs.rmSync(`storage/${req.file.filename}_`, { recursive: true, force: true });
+                if(fs.existsSync(tempFolder))
+                    fs.rmSync(tempFolder, { recursive: true, force: true });
                 res.status(415).json({
                     success: false
                 })
             })
-            .on('end', () => {
+            .on('end', async () => {
                 if(fs.existsSync(`storage/${req.file.filename}`))
                     fs.unlinkSync(`storage/${req.file.filename}`);
+                
+                let blockBlobClient = containerClient.getBlockBlobClient(`${req.file.filename}.m3u8`);
+                let uploadBlobResponse = await blockBlobClient.uploadFile(`${tempFolder}/result.m3u8`);
+                
+                fs.readdir(tempFolder, (err, fileList) => {
+                    fileList.forEach(async (e) => {
+                        if(e.split('.')[1] === 'ts'){
+                            let blockBlobClient = containerClient.getBlockBlobClient(e);
+                            let uploadBlobResponse = await blockBlobClient.uploadFile(`${tempFolder}/${e}`);
+                        }
+                    })
+                })
+
+                console.log(blockBlobClient.url);
+
                 res.status(200).json({
                     success: true
                 })
