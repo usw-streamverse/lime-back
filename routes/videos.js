@@ -54,6 +54,18 @@ const localUpload = multer({
     }
 });
 
+/*
+    채널 기능 만들기 전까지 channel_id 대신 userid로 사용하겠음
+*/
+
+router.get('/', (req, res) => {
+    db.query('SELECT user.nickname, video.created, video.views, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id ORDER BY created DESC', 
+    (error, result) => {
+        if(error) throw error;
+        res.status(200).json(result);
+    });
+});
+
 router.post('/', auth, (req, res) => {
     localUpload.single('video')(req, res, (err) => {
         if(err || !req.file){
@@ -128,7 +140,7 @@ router.post('/', auth, (req, res) => {
                             urls.segments.push(blockBlobClient.url);
                         }
                     };
-                    db.query('INSERT INTO video (url, own_channel, duration, title, explanation, image) VALUES (?,?,?,?,?,?);', [JSON.stringify(urls), req.id, duration, '테스트', '테스트입니다.', thumbnail],
+                    db.query('INSERT INTO video (url, own_channel, duration, title, explanation, thumbnail) VALUES (?,?,?,?,?,?);', [JSON.stringify(urls), req.id, duration, '테스트', '테스트입니다.', thumbnail],
                     (error) => {
                         if(error){
                             res.status(500).json({
