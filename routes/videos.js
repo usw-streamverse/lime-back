@@ -194,7 +194,8 @@ router.post('/', auth, (req, res) => {
                                 m3u8: urls.m3u8,
                                 filename: req.file.originalname,
                                 duration: duration,
-                                id: result.insertId
+                                id: result.insertId,
+                                thumbnail: thumbnail
                             })
                         } 
                     });
