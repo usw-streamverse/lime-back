@@ -59,10 +59,49 @@ const localUpload = multer({
 */
 
 router.get('/', (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.title, video.views, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id ORDER BY created DESC', 
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.views, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE status = \'ACTIVE\' ORDER BY created DESC', 
     (error, result) => {
         if(error) throw error;
         res.status(200).json(result);
+    });
+});
+
+router.get('/:id', (req, res) => {
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.views, video.thumbnail, video.url, video.explanation, video.likes FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    (error, result) => {
+        if(error) throw error;
+        if(result.length == 0)
+            res.status(404).send();
+        else
+            res.status(200).json(
+                result[0]
+            );
+    });
+});
+
+router.put('/:id', auth, (req, res) => {
+    db.query('SELECT channel_id, id FROM video WHERE id = ?', [req.params.id], 
+    (error, result) => {
+        if(error) throw error;
+        if(result.length == 0)
+            res.status(404).send();
+        else{
+            if(result[0].channel_id === req.id){
+                db.query('UPDATE video SET title = ?, explanation = ?, status = ? WHERE id = ?', [req.body.title, req.body.explanation, 'ACTIVE', result[0].id], 
+                (error) => {
+                    console.log(error);
+                    if(error)
+                        res.status(500).send();
+                    else{
+                        res.status(200).json({
+                            id: result[0].id
+                        });
+                    }
+                });
+            }else{
+                res.status(403).send();
+            }
+        }
     });
 });
 
@@ -118,7 +157,6 @@ router.post('/', auth, (req, res) => {
                     duration = toSec(data.duration);
                 })
                 .on('end', async () => {
-                    console.log('end');
                     if(fs.existsSync(`storage/${req.file.filename}`))
                         fs.unlinkSync(`storage/${req.file.filename}`);
     
@@ -140,16 +178,24 @@ router.post('/', auth, (req, res) => {
                             urls.segments.push(blockBlobClient.url);
                         }
                     };
-                    db.query('INSERT INTO video (url, channel_id, duration, title, explanation, thumbnail) VALUES (?,?,?,?,?,?);', [JSON.stringify(urls), req.id, duration, '테스트', '테스트입니다.', thumbnail],
-                    (error) => {
+
+                    /*
+                        일단 동영상 파일을 업로드하기만 하면 video 테이블에 status=INACTIVE 상태로 저장이 되고,
+                        나중에 사용자가 제목과 내용을 설정하면 status=ACTIVE 상태가 되어 공개가 되는 방식
+                        유튜브 업로드도 이거랑 비슷한 방식이고 나중에 삭제할 동영상을 구분할 때 용이해 보여서 이렇게 구성함
+                    */
+
+                    db.query('INSERT INTO video (url, channel_id, duration, title, explanation, thumbnail, status) VALUES (?,?,?,?,?,?,?)', [JSON.stringify(urls), req.id, duration, req.file.originalname, '', thumbnail, 'INACTIVE'],
+                    (error, result) => {
                         if(error){
-                            res.status(500).json({
-                                success: false
-                            })  
+                            res.status(500).send();
                         }else{
                             res.status(200).json({
                                 m3u8: urls.m3u8,
-                                success: true
+                                filename: req.file.originalname,
+                                duration: duration,
+                                id: result.insertId,
+                                thumbnail: thumbnail
                             })
                         } 
                     });
