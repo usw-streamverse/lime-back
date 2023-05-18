@@ -66,16 +66,30 @@ router.get('/', (req, res) => {
     });
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', auth(false), (req, res) => {
     db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.views, video.thumbnail, video.url, video.explanation, video.likes FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
             res.status(404).send();
-        else
-            res.status(200).json(
-                result[0]
-            );
+        else{
+            if(req.id){
+                //로그인한 경우 좋아요 여부 검사
+                db.query('SELECT status FROM likes_video WHERE liker = ? and liked_v = ? and status = ?', [req.id, req.params.id, 'ACTIVE'], 
+                (error, result2) => {
+                    if(error) throw error;
+                    res.status(200).json({
+                        ...result[0],
+                        like: result2.length > 0
+                    });
+                });
+            }else{
+                res.status(200).json({
+                    ...result[0],
+                    like: false
+                });
+            }
+        }
     });
 });
 
