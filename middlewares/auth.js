@@ -15,7 +15,10 @@ const auth = (strict = true) => {
             else token = token[0];
             jwt.verify(token, jwt_config.secretKey, (error, decoded) => {
                 if(error) {
-                    if(strict) res.status(403).json({ message: 'invalid token.' });
+                    if(strict)
+                        res.status(403).json({ message: 'invalid token.' });
+                    else
+                        next();
                 } else{
                     req.id = decoded.id;
                     req.userid = decoded.userid;
