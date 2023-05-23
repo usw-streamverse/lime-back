@@ -9,7 +9,7 @@ router.get('/', (req, res) => {
     })
 });
 
-router.get('/profile', auth, (req, res) => {
+router.get('/profile', auth(), (req, res) => {
     /*
         로그인한 자기 자신의 정보를 출력
         로그인 유지에 사용됨

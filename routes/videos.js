@@ -93,7 +93,7 @@ router.get('/:id', auth(false), (req, res) => {
     });
 });
 
-router.post('/:id/subscribe', auth, (req, res) => {  //[이벤트리스너] 구독 버튼 콜백함수.
+router.post('/:id/subscribe', auth(), (req, res) => {  //[이벤트리스너] 구독 버튼 콜백함수.
     db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
     (error, result) => {
         let active = false;
@@ -120,7 +120,7 @@ router.post('/:id/subscribe', auth, (req, res) => {  //[이벤트리스너] 구�
 });
 
 
-router.post('/:id/like', auth, (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
+router.get('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
     db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
     (error, result) => {
         if(error) throw error;
@@ -147,7 +147,7 @@ router.post('/:id/like', auth, (req, res) => {  //[이벤트리스너] 동영상
     });
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth(), (req, res) => {
     db.query('SELECT channel_id, id FROM video WHERE id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
@@ -173,7 +173,7 @@ router.put('/:id', auth, (req, res) => {
     });
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth(), (req, res) => {
     localUpload.single('video')(req, res, (err) => {
         if(err || !req.file){
             if(err.statusCode){
