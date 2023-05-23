@@ -120,7 +120,7 @@ router.post('/:id/subscribe', auth(), (req, res) => {  //[이벤트리스너] �
 });
 
 
-router.get('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
+router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
     db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
     (error, result) => {
         if(error) throw error;
