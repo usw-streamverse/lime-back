@@ -281,23 +281,30 @@ router.get('/:id/comment', auth(false), (req, res) => {
 
 router.post('/:id/comment', auth(), (req, res) => {
     const comment = req.body.comment;
-    const parent_id = req.body.parent_id;
-    const video_id = req.params.id;
+    const parent_id = req.body.parent_id || 0;
 
-    if(parent_id === 0){
-        db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) values (?, ?, ?, ?)', [0, video_id, req.id, comment], 
-        (error, result) => {
-            if (error) throw error;
-            res.status(200).json({
-                success: true
-            });
-        });
-    } else {
-        db.query('SELECT video.id FROM video_comment WHERE id = ? and video_id = ?', [parent_id, req.params.id],
+    if(parent_id == 0){
+        db.query('SELECT id FROM video WHERE id = ?', [req.params.id],
         (error, result) => {
             if (error) throw error;
             if(result.length){
-                db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) values (?, ?, ?, ?)', [result[0].id, req.params.id, req.id, comment], 
+                db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) VALUES (?, ?, ?, ?)', [0, req.params.id, req.id, comment], 
+                (error, result) => {
+                    if (error) throw error;
+                    res.status(200).json({
+                        success: true
+                    });
+                });
+            } else {
+                res.status(404).send();
+            }
+        });
+    } else {
+        db.query('SELECT id FROM video_comment WHERE id = ? and video_id = ?', [parent_id, req.params.id],
+        (error, result) => {
+            if (error) throw error;
+            if(result.length){
+                db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) VALUES (?, ?, ?, ?)', [result[0].id, req.params.id, req.id, comment], 
                 (error, result) => {
                     if (error) throw error;
                     res.status(200).json({
