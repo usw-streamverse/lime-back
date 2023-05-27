@@ -271,4 +271,89 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
     });
 });
 
+router.get('/:id/comment', auth(false), (req, res) => {
+    db.query('SELECT * FROM video_comment video_id = ?', [req.params.id],
+    (error, result) => {
+        if (error) throw error;
+        res.status(200).json(result);
+    });
+});
+
+router.post('/:id/comment', auth(), (req, res) => {
+    const comment = req.body.comment;
+    const parent_id = req.body.parent_id;
+    const video_id = req.params.id;
+
+    if(parent_id === 0){
+        db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) values (?, ?, ?, ?)', [0, video_id, req.id, comment], 
+        (error, result) => {
+            if (error) throw error;
+            res.status(200).json({
+                success: true
+            });
+        });
+    } else {
+        db.query('SELECT video.id FROM video_comment WHERE id = ? and video_id = ?', [parent_id, req.params.id],
+        (error, result) => {
+            if (error) throw error;
+            if(result.length){
+                db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) values (?, ?, ?, ?)', [result[0].id, req.params.id, req.id, comment], 
+                (error, result) => {
+                    if (error) throw error;
+                    res.status(200).json({
+                        success: true
+                    });
+                });
+            } else {
+                res.status(404).send();
+            }
+        });
+    }
+});
+
+router.put('/:id/comment', auth(), (req, res) => {
+    const comment = req.body.comment;
+    const id = req.body.id;
+    const video_id = req.params.id;
+
+    db.query('SELECT video.id FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
+    (error, result) => {
+        if (error) throw error;
+        if(result.length){
+            if(result[0].writer === req.id){
+                db.query('UPDATE video_comment SET comment = ? WHERE id = ? and video_id = ?', [comment, id, video_id]);
+                res.status(200).json({
+                    success: true
+                });
+            } else {
+                res.status(403).send();
+            }
+        } else {
+            res.status(404).send();
+        }
+    });
+});
+
+router.delete('/:id/comment', auth(), (req, res) => {
+    const id = req.body.id;
+    const video_id = req.params.id;
+
+    db.query('SELECT video.id FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
+    (error, result) => {
+        if (error) throw error;
+        if(result.length){
+            if(result[0].writer === req.id){
+                db.query('UPDATE video_comment SET status = ? WHERE id = ? and video_id = ?', ['INACTIVE', id, video_id]);
+                res.status(200).json({
+                    success: true
+                });
+            } else {
+                res.status(403).send();
+            }
+        } else {
+            res.status(404).send();
+        }
+    });
+});
+
 module.exports = router;
