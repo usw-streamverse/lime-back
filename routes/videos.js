@@ -59,7 +59,7 @@ const localUpload = multer({
 */
 
 router.get('/', (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.views, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE status = \'ACTIVE\' ORDER BY created DESC', 
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE status = \'ACTIVE\' ORDER BY created DESC', 
     (error, result) => {
         if(error) throw error;
         res.status(200).json(result);
@@ -67,13 +67,14 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.views, video.thumbnail, video.url, video.explanation, video.likes FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
             res.status(404).send();
         else{
-            if(req.id){
+            db.query('UPDATE video SET view_count = ? WHERE id = ?', [result[0].view_count += 1, result[0].id]);
+             if(req.id){
                 //로그인한 경우 좋아요 여부 검사
                 db.query('SELECT status FROM likes_video WHERE liker = ? and liked_v = ? and status = ?', [req.id, req.params.id, 'ACTIVE'], 
                 (error, result2) => {
