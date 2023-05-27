@@ -316,7 +316,7 @@ router.put('/:id/comment', auth(), (req, res) => {
     const id = req.body.id;
     const video_id = req.params.id;
 
-    db.query('SELECT video.id FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
+    db.query('SELECT video.writer FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
     (error, result) => {
         if (error) throw error;
         if(result.length){
@@ -338,7 +338,7 @@ router.delete('/:id/comment', auth(), (req, res) => {
     const id = req.body.id;
     const video_id = req.params.id;
 
-    db.query('SELECT video.id FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
+    db.query('SELECT video.writer FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
     (error, result) => {
         if (error) throw error;
         if(result.length){
