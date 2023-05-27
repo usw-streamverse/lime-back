@@ -272,7 +272,7 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
 });
 
 router.get('/:id/comment', auth(false), (req, res) => {
-    db.query('SELECT * FROM video_comment video_id = ?', [req.params.id],
+    db.query('SELECT * FROM video_comment WHERE video_id = ? ORDER BY id DESC', [req.params.id],
     (error, result) => {
         if (error) throw error;
         res.status(200).json(result);
