@@ -54,123 +54,11 @@ const localUpload = multer({
     }
 });
 
-/*
-    채널 기능 만들기 전까지 channel_id 대신 userid로 사용하겠음
-*/
-
 router.get('/', (req, res) => {
     db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE status = \'ACTIVE\' ORDER BY created DESC', 
     (error, result) => {
         if(error) throw error;
         res.status(200).json(result);
-    });
-});
-
-router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
-    (error, result) => {
-        if(error) throw error;
-        if(result.length == 0)
-            res.status(404).send();
-        else{
-            db.query('UPDATE video SET view_count = ? WHERE id = ?', [result[0].view_count += 1, result[0].id]);
-             if(req.id){
-                //로그인한 경우 좋아요 여부 검사
-                db.query('SELECT status FROM likes_video WHERE liker = ? and liked_v = ? and status = ?', [req.id, req.params.id, 'ACTIVE'], 
-                (error, result2) => {
-                    if(error) throw error;
-                    res.status(200).json({
-                        ...result[0],
-                        like: result2.length > 0
-                    });
-                });
-            }else{
-                res.status(200).json({
-                    ...result[0],
-                    like: false
-                });
-            }
-        }
-    });
-});
-
-router.post('/:id/subscribe', auth(), (req, res) => {  //[이벤트리스너] 구독 버튼 콜백함수.
-    db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
-    (error, result) => {
-        let active = false;
-        if(error) throw error;
-        db.query('SELECT status FROM subscribe WHERE subscriber = ? AND be_subscribed = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
-        (error, result) => {
-            if(error) throw error;
-            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
-                db.query('INSERT INTO  (subscriber, be_subscribed) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
-                (error) => {
-                    if(error) throw error;
-                });
-                active = true;
-            }
-            else { //좋아요 되어있고, ACTIVE상태.
-                active = result[0].status !== 'ACTIVE';
-                db.query('UPDATE subscribe SET status = ? WHERE subscriber = ? and be_subscribed = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
-            )}
-            res.status(200).json({
-                active: true
-            });
-        })
-    });
-});
-
-
-router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
-    db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
-    (error, result) => {
-        if(error) throw error;
-        let active = false;
-        db.query('SELECT status FROM likes_video WHERE liker = ? AND liked_v = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
-        (error, result) => {
-            if(error) throw error;
-            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
-                db.query('INSERT INTO likes_video (liker, liked_v) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
-                (error) => {
-                    if(error) throw error;
-                });
-                active = true;
-            }
-            else { //좋아요 되어있고, ACTIVE면 INACTIVE로, INACTIVE면 ACTIVE로.
-                active = result[0].status !== 'ACTIVE';
-                db.query('UPDATE likes_video SET status = ? WHERE liker = ? and liked_v = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
-            )}
-            res.status(200).json({
-                active: active
-            });
-
-        })
-    });
-});
-
-router.put('/:id', auth(), (req, res) => {
-    db.query('SELECT channel_id, id FROM video WHERE id = ?', [req.params.id], 
-    (error, result) => {
-        if(error) throw error;
-        if(result.length == 0)
-            res.status(404).send();
-        else{
-            if(result[0].channel_id === req.id){
-                db.query('UPDATE video SET title = ?, explanation = ?, status = ? WHERE id = ?', [req.body.title, req.body.explanation, 'ACTIVE', result[0].id], 
-                (error) => {
-                    console.log(error);
-                    if(error)
-                        res.status(500).send();
-                    else{
-                        res.status(200).json({
-                            id: result[0].id
-                        });
-                    }
-                });
-            }else{
-                res.status(403).send();
-            }
-        }
     });
 });
 
@@ -271,6 +159,115 @@ router.post('/', auth(), (req, res) => {
                 })
                 .run();
             })
+    });
+});
+
+
+router.get('/:id', auth(false), (req, res) => {
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    (error, result) => {
+        if(error) throw error;
+        if(result.length == 0)
+            res.status(404).send();
+        else{
+            db.query('UPDATE video SET view_count = ? WHERE id = ?', [result[0].view_count += 1, result[0].id]);
+             if(req.id){
+                //로그인한 경우 좋아요 여부 검사
+                db.query('SELECT status FROM likes_video WHERE liker = ? and liked_v = ? and status = ?', [req.id, req.params.id, 'ACTIVE'], 
+                (error, result2) => {
+                    if(error) throw error;
+                    res.status(200).json({
+                        ...result[0],
+                        like: result2.length > 0
+                    });
+                });
+            }else{
+                res.status(200).json({
+                    ...result[0],
+                    like: false
+                });
+            }
+        }
+    });
+});
+
+router.put('/:id', auth(), (req, res) => {
+    db.query('SELECT channel_id, id FROM video WHERE id = ?', [req.params.id], 
+    (error, result) => {
+        if(error) throw error;
+        if(result.length == 0)
+            res.status(404).send();
+        else{
+            if(result[0].channel_id === req.id){
+                db.query('UPDATE video SET title = ?, explanation = ?, status = ? WHERE id = ?', [req.body.title, req.body.explanation, 'ACTIVE', result[0].id], 
+                (error) => {
+                    console.log(error);
+                    if(error)
+                        res.status(500).send();
+                    else{
+                        res.status(200).json({
+                            id: result[0].id
+                        });
+                    }
+                });
+            }else{
+                res.status(403).send();
+            }
+        }
+    });
+});
+
+router.post('/:id/subscribe', auth(), (req, res) => {  //[이벤트리스너] 구독 버튼 콜백함수.
+    db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
+    (error, result) => {
+        let active = false;
+        if(error) throw error;
+        db.query('SELECT status FROM subscribe WHERE subscriber = ? AND be_subscribed = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
+        (error, result) => {
+            if(error) throw error;
+            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
+                db.query('INSERT INTO  (subscriber, be_subscribed) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
+                (error) => {
+                    if(error) throw error;
+                });
+                active = true;
+            }
+            else { //좋아요 되어있고, ACTIVE상태.
+                active = result[0].status !== 'ACTIVE';
+                db.query('UPDATE subscribe SET status = ? WHERE subscriber = ? and be_subscribed = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
+            )}
+            res.status(200).json({
+                active: true
+            });
+        })
+    });
+});
+
+
+router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
+    db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
+    (error, result) => {
+        if(error) throw error;
+        let active = false;
+        db.query('SELECT status FROM likes_video WHERE liker = ? AND liked_v = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
+        (error, result) => {
+            if(error) throw error;
+            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
+                db.query('INSERT INTO likes_video (liker, liked_v) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
+                (error) => {
+                    if(error) throw error;
+                });
+                active = true;
+            }
+            else { //좋아요 되어있고, ACTIVE면 INACTIVE로, INACTIVE면 ACTIVE로.
+                active = result[0].status !== 'ACTIVE';
+                db.query('UPDATE likes_video SET status = ? WHERE liker = ? and liked_v = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
+            )}
+            res.status(200).json({
+                active: active
+            });
+
+        })
     });
 });
 
