@@ -164,7 +164,7 @@ router.post('/', auth(), (req, res) => {
 
 
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ? ORDER BY id DESC', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
