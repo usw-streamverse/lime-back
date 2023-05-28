@@ -162,7 +162,6 @@ router.post('/', auth(), (req, res) => {
     });
 });
 
-
 router.get('/:id', auth(false), (req, res) => {
     db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
@@ -201,7 +200,6 @@ router.put('/:id', auth(), (req, res) => {
             if(result[0].channel_id === req.id){
                 db.query('UPDATE video SET title = ?, explanation = ?, status = ? WHERE id = ?', [req.body.title, req.body.explanation, 'ACTIVE', result[0].id], 
                 (error) => {
-                    console.log(error);
                     if(error)
                         res.status(500).send();
                     else{
@@ -272,7 +270,7 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
 });
 
 router.get('/:id/comment', auth(false), (req, res) => {
-    db.query('SELECT * FROM video_comment WHERE video_id = ? ORDER BY id DESC', [req.params.id],
+    db.query('SELECT user.nickname, video_comment.* FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? ORDER BY id DESC', [req.params.id],
     (error, result) => {
         if (error) throw error;
         res.status(200).json(result);
@@ -282,6 +280,11 @@ router.get('/:id/comment', auth(false), (req, res) => {
 router.post('/:id/comment', auth(), (req, res) => {
     const comment = req.body.comment;
     const parent_id = req.body.parent_id || 0;
+
+    if(comment.trim() === ''){
+        res.status(400).send();
+        return;
+    }
 
     if(parent_id == 0){
         db.query('SELECT id FROM video WHERE id = ?', [req.params.id],
@@ -322,6 +325,11 @@ router.put('/:id/comment', auth(), (req, res) => {
     const comment = req.body.comment;
     const id = req.body.id;
     const video_id = req.params.id;
+
+    if(comment.trim() === ''){
+        res.status(400).send();
+        return;
+    }
 
     db.query('SELECT video.writer FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
     (error, result) => {
