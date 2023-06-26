@@ -349,18 +349,21 @@ router.put('/:id/comment', auth(), (req, res) => {
     });
 });
 
-router.delete('/:id/comment', auth(), (req, res) => {
-    const id = req.body.id;
+router.delete('/:id/comment/:comment', auth(), (req, res) => {
+    const comment_id = req.params.comment;
     const video_id = req.params.id;
 
-    db.query('SELECT video.writer FROM video_comment WHERE id = ? and video_id = ?', [id, video_id],
+    db.query('SELECT writer FROM video_comment WHERE id = ? and video_id = ?', [comment_id, video_id],
     (error, result) => {
         if (error) throw error;
         if(result.length){
             if(result[0].writer === req.id){
-                db.query('UPDATE video_comment SET status = ? WHERE id = ? and video_id = ?', ['INACTIVE', id, video_id]);
-                res.status(200).json({
-                    success: true
+                console.log(comment_id, video_id);
+                db.query('DELETE FROM video_comment WHERE id = ? and video_id = ?', [comment_id, video_id],
+                (error, result) => {
+                    res.status(200).json({
+                        success: true
+                    });
                 });
             } else {
                 res.status(403).send();
