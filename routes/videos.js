@@ -358,11 +358,13 @@ router.delete('/:id/comment/:comment', auth(), (req, res) => {
         if (error) throw error;
         if(result.length){
             if(result[0].writer === req.id){
-                console.log(comment_id, video_id);
                 db.query('DELETE FROM video_comment WHERE id = ? and video_id = ?', [comment_id, video_id],
                 (error, result) => {
-                    res.status(200).json({
-                        success: true
+                    db.query('DELETE FROM video_comment WHERE parent_id = ? and video_id = ?', [comment_id, video_id],
+                    (error, result) => {
+                        res.status(200).json({
+                            success: true
+                        });
                     });
                 });
             } else {
