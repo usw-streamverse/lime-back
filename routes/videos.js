@@ -269,8 +269,17 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
     });
 });
 
+router.get('/:id/comment/:parent_id', auth(false), (req, res) => {
+    db.query('SELECT user.nickname, video_comment.* FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id ASC', [req.params.id, req.params.parent_id],
+    (error, result) => {
+        if (error) throw error;
+        res.status(200).json(result);
+    });
+});
+
+
 router.get('/:id/comment', auth(false), (req, res) => {
-    db.query('SELECT user.nickname, video_comment.* FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? ORDER BY id DESC', [req.params.id],
+    db.query('SELECT user.nickname, video_comment.* FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id DESC', [req.params.id, 0],
     (error, result) => {
         if (error) throw error;
         res.status(200).json(result);
@@ -303,13 +312,15 @@ router.post('/:id/comment', auth(), (req, res) => {
             }
         });
     } else {
-        db.query('SELECT id FROM video_comment WHERE id = ? and video_id = ?', [parent_id, req.params.id],
+        db.query('SELECT reply_count, id FROM video_comment WHERE id = ? and video_id = ?', [parent_id, req.params.id],
         (error, result) => {
+            let reply_count = result[0].reply_count, id = result[0].id;
             if (error) throw error;
             if(result.length){
-                db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) VALUES (?, ?, ?, ?)', [result[0].id, req.params.id, req.id, comment], 
+                db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) VALUES (?, ?, ?, ?)', [id, req.params.id, req.id, comment], 
                 (error, result) => {
                     if (error) throw error;
+                    db.query('UPDATE video_comment SET reply_count = ? WHERE id = ?', [reply_count + 1, id]);
                     res.status(200).json({
                         success: true
                     });
@@ -353,11 +364,18 @@ router.delete('/:id/comment/:comment', auth(), (req, res) => {
     const comment_id = req.params.comment;
     const video_id = req.params.id;
 
-    db.query('SELECT writer FROM video_comment WHERE id = ? and video_id = ?', [comment_id, video_id],
+    db.query('SELECT parent_id, writer FROM video_comment WHERE id = ? and video_id = ?', [comment_id, video_id],
     (error, result) => {
         if (error) throw error;
         if(result.length){
             if(result[0].writer === req.id){
+                if(result[0].parent_id !== 0){
+                    db.query('SELECT reply_count, id FROM video_comment WHERE id = ? and video_id = ?', [result[0].parent_id, video_id],
+                    (error, result) => {
+                        if (error) throw error;
+                        db.query('UPDATE video_comment SET reply_count = ? WHERE id = ?', [result[0].reply_count - 1, result[0].id]);
+                    });
+                }
                 db.query('DELETE FROM video_comment WHERE id = ? and video_id = ?', [comment_id, video_id],
                 (error, result) => {
                     db.query('DELETE FROM video_comment WHERE parent_id = ? and video_id = ?', [comment_id, video_id],
