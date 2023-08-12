@@ -394,4 +394,40 @@ router.delete('/:id/comment/:comment', auth(), (req, res) => {
     });
 });
 
+router.post('/:comment/like', auth(), (req, res) => {  // 댓글 좋아요 기능.
+    db.query('SELECT id,like_count FROM video_comment  WHERE id = ?;', [req.params.comment], // 댓글이 존재하는지 확인, 좋아요 값도 가져옴. video_comment 
+    (error, result) => {
+        if(error) throw error;
+        let active = false; // 댓글 유무 확인용
+        let like_count = result[0].like_count; //  좋아요 갯수
+        db.query('SELECT status FROM commnet_like WHERE liker = ? AND comment_id = ?', [req.id, req.params.comment], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
+        (error, result) => {    
+            if(error) throw error;
+            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음, 테이블 값 추가.)
+                db.query('INSERT INTO commnet_like (liker, comment_id) VALUES (?,?);',[req.id, req.params.comment], // 테이블 값 추가
+                (error) => {
+                    if(error) throw error;
+                });
+                db.query('UPDATE video_comment SET like_count = ? WHERE id = ?', [like_count + 1, req.params.comment], // 댓글의 좋아요 갯수 업데이트
+                (error) =>{
+                    if(error) throw error;
+                });
+                active = true;
+            }
+            else { //'좋아요'가 있는 상태에서 누르는 경우. (DB상에 튜플 존재, 테이블 값 삭제)
+                db.query('DELETE FROM commnet_like WHERE liker = ? and comment_id = ?', [req.id, req.params.comment],  // 테이블 값 삭제
+                (error) =>{
+                    if(error) throw error;
+                });
+                db.query('UPDATE video_comment SET like_count = ? WHERE id = ?', [like_count - 1, req.params.comment], // 댓글의 좋아요 갯수 업데이트
+                (error) =>{
+                    if(error) throw error;
+                });
+            }
+            res.status(200).json({
+                active: active
+            });
+        })
+    });
+});
 module.exports = router;
