@@ -320,9 +320,11 @@ router.post('/:id/comment', auth(), (req, res) => {
                 db.query('INSERT INTO video_comment(parent_id, video_id, writer, comment) VALUES (?, ?, ?, ?)', [id, req.params.id, req.id, comment], 
                 (error, result) => {
                     if (error) throw error;
-                    db.query('UPDATE video_comment SET reply_count = ? WHERE id = ?', [reply_count + 1, id]);
-                    res.status(200).json({
-                        success: true
+                    db.query('UPDATE video_comment SET reply_count = ? WHERE id = ?', [reply_count + 1, id], (error) => {
+                        if (error) throw error;
+                        res.status(200).json({
+                            success: true
+                        });
                     });
                 });
             } else {
@@ -398,7 +400,6 @@ router.post('/comment/:comment/like', auth(), (req, res) => {  // 댓글 좋아�
     db.query('SELECT id,like_count FROM video_comment  WHERE id = ?;', [req.params.comment], // 댓글이 존재하는지 확인, 좋아요 값도 가져옴. video_comment 
     (error, result) => {
         if(error) throw error;
-        let active = false; // 댓글 유무 확인용
         let like_count = result[0].like_count; //  좋아요 갯수
         db.query('SELECT * FROM comment_like WHERE liker = ? AND comment_id = ?', [req.id, req.params.comment], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
         (error, result) => {
@@ -411,8 +412,10 @@ router.post('/comment/:comment/like', auth(), (req, res) => {  // 댓글 좋아�
                 db.query('UPDATE video_comment SET like_count = ? WHERE id = ?', [like_count + 1, req.params.comment], // 댓글의 좋아요 갯수 업데이트
                 (error) =>{
                     if(error) throw error;
+                    res.status(200).json({
+                        active: true
+                    });
                 });
-                active = true;
             }
             else { //'좋아요'가 있는 상태에서 누르는 경우. (DB상에 튜플 존재, 테이블 값 삭제)
                 db.query('DELETE FROM comment_like WHERE liker = ? and comment_id = ?', [req.id, req.params.comment],  // 테이블 값 삭제
@@ -422,11 +425,11 @@ router.post('/comment/:comment/like', auth(), (req, res) => {  // 댓글 좋아�
                 db.query('UPDATE video_comment SET like_count = ? WHERE id = ?', [like_count - 1, req.params.comment], // 댓글의 좋아요 갯수 업데이트
                 (error) =>{
                     if(error) throw error;
+                    res.status(200).json({
+                        active: false
+                    });
                 });
             }
-            res.status(200).json({
-                active: active
-            });
         })
     });
 });
