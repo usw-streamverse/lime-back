@@ -44,4 +44,29 @@ router.post('/:id/subscribe', auth(), (req, res) => {
     });
 });
 
+
+router.post('/playlist/name', auth(), (req, res) => {  // 재생목록을 만듬
+    const name = req.body.name;  // 재생목록 이름 
+    if(name.trim() === ''){
+        res.status(400).send();
+        return;
+    }
+    else{
+        db.query('SELECT * FROM user WHERE id = ?', [req.id], // 유저 확인 
+        (error, result) => {
+            if(error) throw error;
+            if(result.length) {
+                db.query('INSERT INTO playlist (U_id, name) VALUES (?, ?)',[req.id, name], // 재생목록 만듬
+                (error, result) => {
+                    if(error) throw error;
+                    res.status(200).json({
+                        'success': true,
+                        'playlist_name' : name
+                    });
+                });
+            }         
+        });
+    }
+});
+
 module.exports = router;
