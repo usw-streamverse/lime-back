@@ -215,33 +215,6 @@ router.put('/:id', auth(), (req, res) => {
     });
 });
 
-router.post('/:id/subscribe', auth(), (req, res) => {  //[이벤트리스너] 구독 버튼 콜백함수.
-    db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
-    (error, result) => {
-        let active = false;
-        if(error) throw error;
-        db.query('SELECT status FROM subscribe WHERE subscriber = ? AND be_subscribed = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
-        (error, result) => {
-            if(error) throw error;
-            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
-                db.query('INSERT INTO  (subscriber, be_subscribed) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
-                (error) => {
-                    if(error) throw error;
-                });
-                active = true;
-            }
-            else { //좋아요 되어있고, ACTIVE상태.
-                active = result[0].status !== 'ACTIVE';
-                db.query('UPDATE subscribe SET status = ? WHERE subscriber = ? and be_subscribed = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
-            )}
-            res.status(200).json({
-                active: true
-            });
-        })
-    });
-});
-
-
 router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
     db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
     (error, result) => {
