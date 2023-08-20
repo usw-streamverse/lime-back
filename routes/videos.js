@@ -406,6 +406,7 @@ router.post('/comment/:comment/like', auth(), (req, res) => {  // 댓글 좋아�
         })
     });
 });
+
 router.get('/:id/record', auth(), (req, res) => { //시청기록 저장
     db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id], [req.params.id],
         (error, result) =>{
@@ -424,4 +425,42 @@ router.get('/:id/record', auth(), (req, res) => { //시청기록 저장
         });
     
 });
+
+router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목록에 추가함.
+    const playlist = req.body.playlist // 재생목록 고유id 이름x 
+    db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
+    (error, result) => {
+        if(error) throw error;
+        db.query('SELECT * FROM playlist_record WHERE PL_id = ? AND V_id = ?', [playlist,req.params.id], // 비디오가 이미 재생목록에 있는지 확인.
+        (error, result) => {
+            if(error) throw error;
+            if(result.length){    // 재생목록에 존재함.
+                res.status(201).json({
+                    'playlist': 'Exist'
+                });
+            }
+            else{               // 재생목록에 존재하지 않음.
+                db.query('SELECT U_id FROM playlist WHERE id = ?', [playlist], // 재생목록 유저 데이터 확인.
+                (error, result) => {
+                    if(error) throw error;
+                    if(result[0].U_id ==  req.id) {  // 재생목록에 있는 유저id 와 auth() id를 확인.
+                        db.query('INSERT INTO playlist_record (PL_id,V_id) VALUES (?,?)', [playlist,req.params.id],
+                        (error, result) => {
+                        if(error) throw error;
+                            res.status(200).json({
+                                'success': true,
+                            });
+                        });
+                    }
+                    else{
+                        res.status(201).json({
+                            'playlist_User_id': 'difference'
+                        });
+                    }         
+                });
+            }
+        });   
+    });
+});
+
 module.exports = router;
