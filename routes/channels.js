@@ -25,14 +25,20 @@ router.post('/:id/subscribe', auth(), (req, res) => {
             (error, result) => {
                 if(error) throw error;
                 if(result.length) {
-                    db.query('DELETE FROM subscribe WHERE subscriber = ? and channel = ?', [req.id, req.params.id]);
-                    res.status(200).json({
-                        'subscribe': false
+                    db.query('DELETE FROM subscribe WHERE subscriber = ? and channel = ?', [req.id, req.params.id], 
+                    (error) => {
+                        if(error) throw error;
+                        res.status(200).json({
+                            'active': false
+                        });
                     });
                 } else {
-                    db.query('INSERT INTO subscribe (subscriber, channel) VALUES (?, ?)',[req.id, req.params.id]); 
-                    res.status(200).json({
-                        'subscribe': true
+                    db.query('INSERT INTO subscribe (subscriber, channel) VALUES (?, ?)',[req.id, req.params.id], 
+                    (error) => {
+                        if(error) throw error;
+                        res.status(200).json({
+                            'active': true
+                        });
                     });
                 }
             });
