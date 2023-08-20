@@ -62,7 +62,7 @@ router.post('/playlist/name', auth(), (req, res) => {  // 재생목록을 만듬
         (error, result) => {
             if(error) throw error;
             if(result.length) {
-                db.query('INSERT INTO playlist (U_id, name) VALUES (?, ?)',[req.id, name], // 재생목록 만듬
+                db.query('INSERT INTO playlist (user_id, name) VALUES (?, ?)',[req.id, name], // 재생목록 만듬
                 (error, result) => {
                     if(error) throw error;
                     res.status(200).json({
@@ -76,7 +76,7 @@ router.post('/playlist/name', auth(), (req, res) => {  // 재생목록을 만듬
 });
 
 router.get('/playlist', auth(), (req, res) => {  // 재생목록을 확인하는 기능
-    db.query('SELECT id,name FROM playlist WHERE U_id = ?', [req.id], // 유저 확인 
+    db.query('SELECT id,name FROM playlist WHERE user_id = ?', [req.id], // 유저 확인 
         (error, result) => {
             if(error) throw error;
             if(result.length) {

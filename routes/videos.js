@@ -444,7 +444,7 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
     db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
     (error, result) => {
         if(error) throw error;
-        db.query('SELECT * FROM playlist_record WHERE PL_id = ? AND V_id = ?', [playlist,req.params.id], // 비디오가 이미 재생목록에 있는지 확인.
+        db.query('SELECT * FROM playlist_record WHERE playlist_id = ? AND video_id = ?', [playlist,req.params.id], // 비디오가 이미 재생목록에 있는지 확인.
         (error, result) => {
             if(error) throw error;
             if(result.length){    // 재생목록에 존재함.
@@ -453,11 +453,11 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
                 });
             }
             else{               // 재생목록에 존재하지 않음.
-                db.query('SELECT U_id FROM playlist WHERE id = ?', [playlist], // 재생목록 유저 데이터 확인.
+                db.query('SELECT user_id FROM playlist WHERE id = ?', [playlist], // 재생목록 유저 데이터 확인.
                 (error, result) => {
                     if(error) throw error;
-                    if(result[0].U_id ==  req.id) {  // 재생목록에 있는 유저id 와 auth() id를 확인.
-                        db.query('INSERT INTO playlist_record (PL_id,V_id) VALUES (?,?)', [playlist,req.params.id],
+                    if(result[0].user_id ==  req.id) {  // 재생목록에 있는 유저id 와 auth() id를 확인.
+                        db.query('INSERT INTO playlist_record (playlist_id, video_id) VALUES (?,?)', [playlist,req.params.id],
                         (error, result) => {
                         if(error) throw error;
                             res.status(200).json({
