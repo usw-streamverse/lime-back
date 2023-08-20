@@ -408,18 +408,26 @@ router.post('/comment/:comment/like', auth(), (req, res) => {  // 댓글 좋아�
 });
 
 router.get('/:id/record', auth(), (req, res) => { //시청기록 저장
-    db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id], [req.params.id],
-        (error, result) =>{
-            if (result.length != 0){ //이미 시청한 적이 있는 경우
-                db.query('UPDATE record SET updated = ? WHERE user_id = ? and video_id = ? ', CURRENT_TIMESTEMP, [req.id], [req.params.id])
+    db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id, req.params.id],
+        (error, result) =>{  
+            if(error) throw error;
+            if (result.length){ //이미 시청한 적이 있는 경우
+                db.query('UPDATE record SET updated = CURRENT_TIMESTAMP WHERE user_id = ? and video_id = ? ', [req.id, req.params.id]);
+                res.status(200).json({
+                    'success': true
+                });   
             }
             else{
                 db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
                 (error, result) => {
-                    db.query('INSERT INTO record(user_id, video_id) VALUES (?,?)', [req.id], [result[0].id],                
+                    db.query('INSERT INTO record(user_id, video_id) VALUES (?,?)', [req.id, result[0].id],                
                     (error) =>{
                         if(error) throw error;
+                        res.status(200).json({
+                            'success': true
+                        });   
                     });
+                    
                 });
             }
         });
