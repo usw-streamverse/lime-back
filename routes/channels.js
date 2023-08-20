@@ -69,4 +69,17 @@ router.post('/playlist/name', auth(), (req, res) => {  // 재생목록을 만듬
     }
 });
 
+router.get('/playlist', auth(), (req, res) => {  // 재생목록을 확인하는 기능
+    db.query('SELECT id,name FROM playlist WHERE U_id = ?', [req.id], // 유저 확인 
+        (error, result) => {
+            if(error) throw error;
+            if(result.length) {
+                res.status(200).json({
+                    'success': true,
+                    'playlist_name' : result
+                });
+            }         
+        });
+});
+
 module.exports = router;
