@@ -220,33 +220,6 @@ router.put('/:id', auth(), (req, res) => {
     });
 });
 
-router.post('/:id/subscribe', auth(), (req, res) => {  //[이벤트리스너] 구독 버튼 콜백함수.
-    db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
-    (error, result) => {
-        let active = false;
-        if(error) throw error;
-        db.query('SELECT status FROM subscribe WHERE subscriber = ? AND be_subscribed = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
-        (error, result) => {
-            if(error) throw error;
-            if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
-                db.query('INSERT INTO  (subscriber, be_subscribed) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
-                (error) => {
-                    if(error) throw error;
-                });
-                active = true;
-            }
-            else { //좋아요 되어있고, ACTIVE상태.
-                active = result[0].status !== 'ACTIVE';
-                db.query('UPDATE subscribe SET status = ? WHERE subscriber = ? and be_subscribed = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
-            )}
-            res.status(200).json({
-                active: true
-            });
-        })
-    });
-});
-
-
 router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영상 좋아요 버튼 콜백함수.
     db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
     (error, result) => {
@@ -438,4 +411,69 @@ router.post('/comment/:comment/like', auth(), (req, res) => {  // 댓글 좋아�
         })
     });
 });
+
+router.get('/:id/record', auth(), (req, res) => { //시청기록 저장
+    db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id, req.params.id],
+        (error, result) =>{  
+            if(error) throw error;
+            if (result.length){ //이미 시청한 적이 있는 경우
+                db.query('UPDATE record SET updated = CURRENT_TIMESTAMP WHERE user_id = ? and video_id = ? ', [req.id, req.params.id]);
+                res.status(200).json({
+                    'success': true
+                });   
+            }
+            else{
+                db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
+                (error, result) => {
+                    db.query('INSERT INTO record(user_id, video_id) VALUES (?,?)', [req.id, result[0].id],                
+                    (error) =>{
+                        if(error) throw error;
+                        res.status(200).json({
+                            'success': true
+                        });   
+                    });
+                    
+                });
+            }
+        });
+    
+});
+
+router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목록에 추가함.
+    const playlist = req.body.playlist // 재생목록 고유id 이름x 
+    db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
+    (error, result) => {
+        if(error) throw error;
+        db.query('SELECT * FROM playlist_record WHERE PL_id = ? AND V_id = ?', [playlist,req.params.id], // 비디오가 이미 재생목록에 있는지 확인.
+        (error, result) => {
+            if(error) throw error;
+            if(result.length){    // 재생목록에 존재함.
+                res.status(201).json({
+                    'playlist': 'Exist'
+                });
+            }
+            else{               // 재생목록에 존재하지 않음.
+                db.query('SELECT U_id FROM playlist WHERE id = ?', [playlist], // 재생목록 유저 데이터 확인.
+                (error, result) => {
+                    if(error) throw error;
+                    if(result[0].U_id ==  req.id) {  // 재생목록에 있는 유저id 와 auth() id를 확인.
+                        db.query('INSERT INTO playlist_record (PL_id,V_id) VALUES (?,?)', [playlist,req.params.id],
+                        (error, result) => {
+                        if(error) throw error;
+                            res.status(200).json({
+                                'success': true,
+                            });
+                        });
+                    }
+                    else{
+                        res.status(201).json({
+                            'playlist_User_id': 'difference'
+                        });
+                    }         
+                });
+            }
+        });   
+    });
+});
+
 module.exports = router;
