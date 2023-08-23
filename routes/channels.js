@@ -51,7 +51,7 @@ router.post('/:id/subscribe', auth(), (req, res) => {
 });
 
 
-router.post('/playlist/name', auth(), (req, res) => {  // 재생목록을 만듬
+router.post('/playlist', auth(), (req, res) => {  // 재생목록을 만듬
     const name = req.body.name;  // 재생목록 이름 
     if(name.trim() === ''){
         res.status(400).send();
