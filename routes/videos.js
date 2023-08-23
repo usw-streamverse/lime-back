@@ -271,7 +271,7 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
     });
 });
 
-router.get('/:id/comment/:parent_id', auth(false), (req, res) => {
+router.get('/:id/comment/:parent_id', auth(false), (req, res) => { // 답글 목록 구하기
     db.query('SELECT user.nickname, video_comment.*, (SELECT exists (SELECT * FROM comment_like WHERE comment_id = video_comment.id and liker = ?)) as liked FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id ASC', [req.id || -1, req.params.id, req.params.parent_id],
     (error, result) => {
         if (error) throw error;
@@ -280,7 +280,7 @@ router.get('/:id/comment/:parent_id', auth(false), (req, res) => {
 });
 
 
-router.get('/:id/comment', auth(false), (req, res) => {
+router.get('/:id/comment', auth(false), (req, res) => { // 댓글 목록 구하기
     db.query('SELECT user.nickname, video_comment.*, (SELECT exists (SELECT * FROM comment_like WHERE comment_id = video_comment.id and liker = ?)) as liked FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id DESC', [req.id || -1, req.params.id, 0],
     (error, result) => {
         if (error) throw error;
@@ -288,7 +288,7 @@ router.get('/:id/comment', auth(false), (req, res) => {
     });
 });
 
-router.post('/:id/comment', auth(), (req, res) => {
+router.post('/:id/comment', auth(), (req, res) => { // 댓글/답글 작성
     const comment = req.body.comment;
     const parent_id = req.body.parent_id || 0;
 
@@ -297,7 +297,7 @@ router.post('/:id/comment', auth(), (req, res) => {
         return;
     }
 
-    if(parent_id == 0){
+    if(parent_id == 0){ // 댓글 작성
         db.query('SELECT id FROM video WHERE id = ?', [req.params.id],
         (error, result) => {
             if (error) throw error;
@@ -313,7 +313,7 @@ router.post('/:id/comment', auth(), (req, res) => {
                 res.status(404).send();
             }
         });
-    } else {
+    } else { // 답글 작성
         db.query('SELECT reply_count, id FROM video_comment WHERE id = ? and video_id = ?', [parent_id, req.params.id],
         (error, result) => {
             let reply_count = result[0].reply_count, id = result[0].id;
@@ -336,7 +336,7 @@ router.post('/:id/comment', auth(), (req, res) => {
     }
 });
 
-router.put('/:id/comment', auth(), (req, res) => {
+router.put('/:id/comment', auth(), (req, res) => { // 댓글 수정
     const comment = req.body.comment;
     const id = req.body.id;
     const video_id = req.params.id;
@@ -364,7 +364,7 @@ router.put('/:id/comment', auth(), (req, res) => {
     });
 });
 
-router.delete('/:id/comment/:comment', auth(), (req, res) => {
+router.delete('/:id/comment/:comment', auth(), (req, res) => { // 댓글 삭제 (답글 포함)
     const comment_id = req.params.comment;
     const video_id = req.params.id;
 
