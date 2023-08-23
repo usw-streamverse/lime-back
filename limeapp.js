@@ -17,6 +17,7 @@ app.use('/auth', require('./routes/auth')); //로그인페이지
 app.use('/videos', require('./routes/videos')); //비디오 업로드
 app.use('/channels', require('./routes/channels')); //채널
 app.use('/search', require('./routes/search')); //검색
+app.use('/subscribe', require('./routes/subscribe')); // 구독
 
 app.use((req, res, nest) => { //찾을 수 없다면.
    res.status(404).send('Not Found');
