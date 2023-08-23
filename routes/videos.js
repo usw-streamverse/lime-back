@@ -476,4 +476,30 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
     });
 });
 
+router.delete('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목록에 추가함.
+    const playlist = req.body.playlist // 재생목록 고유id 이름x 
+    db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
+    (error, result) => {
+        if(error) throw error;
+        db.query('SELECT * FROM playlist_record WHERE playlist_id = ? AND video_id = ?', [playlist,req.params.id], // 비디오가 재생목록에 있는지 확인.
+        (error, result) => {
+            if(error) throw error;
+            if(result.length){    // 재생목록에 존재할 시 DB에서 삭제.
+                db.query('DELETE FROM playlist_record WHERE playlist_id = ? AND video_id = ?', [playlist, req.params.id],  // 테이블 값 삭제
+                (error) =>{
+                    if(error) throw error;
+                    res.status(200).json({
+                        'playlist': 'Delete'
+                    });
+                });
+            }
+            else{               // 재생목록에 존재하지 않음.
+                res.status(201).json({
+                    'playlist': 'NOT Exist'
+                });
+            }
+        });   
+    });
+});
+
 module.exports = router;
