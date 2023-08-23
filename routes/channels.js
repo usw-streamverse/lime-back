@@ -21,7 +21,7 @@ router.post('/:id/subscribe', auth(), (req, res) => {
     (error, result) => {
         if(error) throw error;
         if(result.length) {
-            db.query('SELECT * FROM subscribe WHERE channel = ?', [result[0].id], 
+            db.query('SELECT * FROM subscribe WHERE subscriber = ? and channel = ?', [req.id, result[0].id], 
             (error, result) => {
                 if(error) throw error;
                 if(result.length) {
