@@ -225,22 +225,46 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
     (error, result) => {
         if(error) throw error;
         let active = false;
+        let likeNumCount;
         db.query('SELECT status FROM likes_video WHERE liker = ? AND liked_v = ?', [req.id, req.params.id], //이미 좋아요가 되어있을 경우(DB상 튜플있음)
         (error, result) => {
             if(error) throw error;
             if(result.length == 0) {//좋아요 처음 누르는 경우. (DB상에 튜플 없음)
-                db.query('INSERT INTO likes_video (liker, liked_v) VALUES (?,?);',[req.id, req.params.id], //처음 구독하는 경우. (DB상에 튜플 없음.)
+                db.query('INSERT INTO likes_video (liker, liked_v) VALUES (?,?);',[req.id, req.params.id], 
                 (error) => {
                     if(error) throw error;
+                });
+                
+                db.query('SELECT like_count FROM video WHERE id = ?',[req.params.id], // video 테이블 like_count 넘버링.+1
+                (error, result) => {
+                    if(error) throw error;
+                    likeNumCount = result[0].like_count + 1 ;
+                    db.query('UPDATE video SET like_count = ? WHERE id = ?;',[likeNumCount, req.params.id], 
+                    (error) => {
+                        if(error) throw error;
+                    });
                 });
                 active = true;
             }
             else { //좋아요 되어있고, ACTIVE면 INACTIVE로, INACTIVE면 ACTIVE로.
                 active = result[0].status !== 'ACTIVE';
+                
+                db.query('SELECT like_count FROM video WHERE id = ?',[req.params.id], // video 테이블 like_count 넘버링.
+                (error, result) => {
+                    if(error) throw error;
+                    likeNumCount = result[0].like_count;
+                    db.query('UPDATE video SET like_count = ? WHERE id = ?;',[active === true ? (likeNumCount + 1) : (likeNumCount - 1), req.params.id], 
+                    (error) => {
+                        if(error) throw error;
+                    });
+                });
+
                 db.query('UPDATE likes_video SET status = ? WHERE liker = ? and liked_v = ?', [result[0].status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE', req.id, req.params.id], (error) =>{if(error) throw error;}  //INACTIVE(비활성화) = 좋아요 취소.
-            )}
+                )
+            }
             res.status(200).json({
-                active: active
+                active: active,
+                like_count: likeNumCount
             });
 
         })
