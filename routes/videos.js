@@ -472,8 +472,8 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
         (error, result) => {
             if(error) throw error;
             if(result.length){    // 재생목록에 존재함.
-                res.status(201).json({
-                    'playlist': 'Exist'
+                res.status(400).json({
+                    'success': false
                 });
             }
             else{               // 재생목록에 존재하지 않음.
@@ -490,8 +490,8 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
                         });
                     }
                     else{
-                        res.status(201).json({
-                            'playlist_User_id': 'difference'
+                        res.status(403).json({
+                            'success': false
                         });
                     }         
                 });
@@ -500,7 +500,7 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
     });
 });
 
-router.delete('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목록에 추가함.
+router.delete('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목록에 삭제함.
     const playlist = req.body.playlist // 재생목록 고유id 이름x 
     db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
     (error, result) => {
@@ -513,13 +513,13 @@ router.delete('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목
                 (error) =>{
                     if(error) throw error;
                     res.status(200).json({
-                        'playlist': 'Delete'
+                        'success': true
                     });
                 });
             }
             else{               // 재생목록에 존재하지 않음.
-                res.status(201).json({
-                    'playlist': 'NOT Exist'
+                res.status(404).json({
+                    'success': false
                 });
             }
         });   
