@@ -2,12 +2,18 @@ const express = require('express'); //익스프레스 모듈 삽입
 const app = express();
 const bodyParser = require('body-parser');
 const auth = require('./middlewares/auth');
+const live_streaming = require('./live_streaming');
+
+
+
 
 require('dotenv').config();
 
 app.use(require('cors')());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
+
+app.use(express.static(`${__dirname}/live_streaming`));
 
 app.set('port',process.env.PORT || 3000); //process.env에 포트속성이 있다면 사용, 아니라면 3000.
 
@@ -27,3 +33,6 @@ app.use((req, res, nest) => { //찾을 수 없다면.
 app.listen(app.get('port'), () => {
    console.log(`lime-backend is running on port ${app.get('port')}`);
 });
+
+
+live_streaming(4000);
