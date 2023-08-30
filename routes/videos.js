@@ -55,7 +55,7 @@ const localUpload = multer({
 });
 
 router.get('/', (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE status = \'ACTIVE\' ORDER BY created DESC', 
+    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.status = \'ACTIVE\' ORDER BY created DESC', 
     (error, result) => {
         if(error) throw error;
         res.status(200).json(result);
