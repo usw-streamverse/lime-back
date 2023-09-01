@@ -15,8 +15,11 @@ module.exports = (port) => {
                 switch(ws.state){
                     case 0: 
                     {
+                        console.log(message.toString());
                         const data = JSON.parse(message.toString());
-                        ws.state = 1;
+                        ws.type = data.type;
+                        if(ws.type === 'broadcast')
+                           ws.state = 1;
                         console.log(data);
                     }
                         break;
@@ -31,7 +34,11 @@ module.exports = (port) => {
                     {
                         console.log(ws.sequence, message.byteLength);
                         fs.writeFileSync(`${__dirname}/files/${ws.sequence}.webm`, Buffer.from(message.buffer));
-                        //Buffer.from(message.buffer).pipe(fs.createWriteStream(`${__dirname}/files/${ws.sequence}.webm`));
+                        wss.clients.forEach(i => {
+                            if(i.type === 'view'){
+                                i.send(ws.sequence);
+                            }
+                        })
                         ws.state = 1;
                     }
                         break;
@@ -42,4 +49,4 @@ module.exports = (port) => {
             }
         });
     });
-}
+} 
