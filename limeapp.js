@@ -3,7 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const auth = require('./middlewares/auth');
 const live_streaming = require('./live_streaming');
-
+const live_chat = require('./middlewares/websocket');
 
 
 
@@ -36,3 +36,4 @@ app.listen(app.get('port'), () => {
 
 
 live_streaming(4000);
+live_chat(3001);
