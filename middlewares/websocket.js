@@ -1,12 +1,12 @@
-var WebSocket = require("ws").Server;
+var WebSocket = require("ws");
 const jwt = require('jsonwebtoken');
 const jwt_config = require('../config/jwt.js');
 const db = require('../db/db.js');
 
 // db를 이용해 유저 정보를 가져오는 것을 구현해야됨 
 
-module.exports = (server) => { // server: app.js에서 넘겨준 서버
-    const wss = new WebSocket({ server });  // express 서버를 웹 소켓 서버와 연결함
+module.exports = (port) => { // server: app.js에서 넘겨준 서버
+    const wss = new WebSocket.Server({port: port});  // express 서버를 웹 소켓 서버와 연결함
                                                    // express(HTTP)와 웹 소켓(WS)은 같은 포트를 공유할 수 있으므로 별도의 작업 필요X
     
     wss.on('connection', (ws, req) => { // 연결 후 웹 소켓 서버(wss)에 이벤트 리스너를 붙힘 - connection 이벤트
@@ -14,14 +14,14 @@ module.exports = (server) => { // server: app.js에서 넘겨준 서버
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress; // req.headers['x-forwarded-for'] || req.connection.remoteAddress: 클라이언트의 IP를 알아내는 유명한 방법 중 하나
                                                                                    // express에서는 IP 확인 시 proxy-addr 패키지를 사용하므로 이 패키지(proxy-addr) 사용해도 괜찮음
                                                                                    // localhost 접속 시 크롬에서 IP가 ::1로 뜸, 다른 브라우저는 ::1외에 다른 IP가 뜰 수 있음
+        console.log(`live-chat server is running on port ${wss.options.port}`);
         wss.broadcast = (message) => { // broadcast라는 메소드를 추가하는 코드
             wss.clients.forEach((client) => { // 접속된 클라이언트들 모두에게 메세지를 전달함.
                 client.send(message);
             });
         };
-                                                                                   
-
-        let token = req.headers.authorization;     
+        let nickname;   // 닉네임을 저장할 값.                                                                       
+        let token = req.headers.authorization; // 로그인 정보 토큰을 저장할 값.                                                                               
         if(token == null){
             wss.broadcast('알수 없는 이용자가 입장했습니다.'); 
         } else {
@@ -32,7 +32,12 @@ module.exports = (server) => { // server: app.js에서 넘겨준 서버
                 if(error) {
                     wss.broadcast('알수 없는 이용자가 입장했습니다.');
                 } else{
-                    wss.broadcast(decoded.id.toString() + '님이 입장했습니다.')
+                    db.query('SELECT * FROM user WHERE id = ? ', [decoded.id], 
+                    (error, result) => {
+                        if(error) throw error;           
+                        nickname = result[0].nickname;
+                        wss.broadcast(result[0].nickname + '님이 입장했습니다.')   
+                    });
                 }
             })
         }
@@ -45,7 +50,7 @@ module.exports = (server) => { // server: app.js에서 넘겨준 서버
         // 이벤트 리스너(message, error, close) 세 개 연결
         ws.on('message', (message) => { // 클라이언트로부터 메시지 수신 시(메시지 왔을 때 발생), 클라이언트의 onmessage 실행 시 실행됨
             console.log(message.toString());
-            wss.broadcast(decoded.id.toString() +'님의 채팅:'+ message.toString());
+            wss.broadcast(nickname +'님의 채팅:'+ message.toString());
         });
         
         ws.on('error', (error) => { // 에러 시(웹 소켓 연결 중 문제가 발생한 경우)
