@@ -1,46 +1,73 @@
 const WebSocket = require('ws');
-const fs = require('fs');
+const rtc = require('./rtc');
+const { RTCIceCandidate } = require('wrtc');
+const { v1: uuid } = require('uuid');
+const jwt = require('jsonwebtoken');
+const jwt_config = require('../config/jwt.js');
+const connections = new Map();
 
 module.exports = (port) => {
     const wss = new WebSocket.Server({port: port});
-
+    
     wss.on('listening', () => {
         console.log(`live-streaming server is running on port ${wss.options.port}`);
     });
 
     wss.on('connection', (ws, req) => {
         ws.state = 0;
+        ws.authorized = false;
+        ws.id = uuid();
+
+        ws.on('close', (e) => {
+            connections.delete(ws.id);
+        });
+
         ws.on('message', (message) => {
             try {
-                switch(ws.state){
-                    case 0: 
-                    {
-                        console.log(message.toString());
-                        const data = JSON.parse(message.toString());
-                        ws.type = data.type;
-                        if(ws.type === 'broadcast')
-                           ws.state = 1;
-                        console.log(data);
-                    }
-                        break;
-                    case 1:
-                    {
-                        const data = JSON.parse(message.toString());
-                        ws.state = 2;
-                        ws.sequence = parseInt(data.sequence);
-                    }
-                        break;
-                    case 2:
-                    {
-                        console.log(ws.sequence, message.byteLength);
-                        fs.writeFileSync(`${__dirname}/files/${ws.sequence}.webm`, Buffer.from(message.buffer));
-                        wss.clients.forEach(i => {
-                            if(i.type === 'view'){
-                                i.send(ws.sequence);
+                const data = JSON.parse(message.toString());
+                switch(data.type){
+                    case 'authorization': {
+                        jwt.verify(data.token, jwt_config.secretKey, (error, decoded) => {
+                            if(error) {
+                                ws.send(JSON.stringify({type: 'error', message: '잘못된 토큰입니다.'}));
+                                throw new Error('invalid token');
+                            } else {
+                                ws.authorized = true;
+                                ws.userid = decoded.userid;
                             }
                         })
-                        ws.state = 1;
                     }
+                    break
+                    case 'offer': {
+                        if(!ws.authorized) throw new Error('unauthorized');
+                        const newRtc = new rtc(ws);
+                        newRtc.broadcast = data.mode === 'broadcast';
+                        ws.rtc = newRtc;
+                        if(data.mode === 'stream'){
+                            for(let [key, i] of connections){
+                                if(i.rtc.broadcast){
+                                    i.rtc.stream.getTracks().forEach(track => {
+                                        ws.rtc.remote.addTrack(track, i.rtc.stream);
+                                    });
+                                    break;
+                                }
+                            }
+                        }
+                        newRtc.init(data.desc, (desc, error) => {
+                            if(error) return;
+                            ws.send(JSON.stringify({'type': 'offer', 'desc': desc}));
+                            connections.set(ws.id, ws);
+                        });
+                    }
+                    break;
+                    case 'track':
+                        if(!ws.authorized) throw new Error('unauthorized');
+                        ws.send(JSON.stringify({'type': 'track', 'length': connections.length}));
+                        break;
+                    case 'icecandidate':
+                        if(!ws.authorized) throw new Error('unauthorized');
+                        if(data.data)
+                            ws.rtc.remote.addIceCandidate(new RTCIceCandidate(data.data));
                         break;
                 }
             } catch (e) {
