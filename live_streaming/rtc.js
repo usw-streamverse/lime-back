@@ -12,7 +12,6 @@ class RTC {
         this.remote = new RTCPeerConnection(iceServers);
         this.track = null;
         this.socket = socket;
-        this.broadcast = false;
 
         this.remote.ontrack = (e) => {
             this.stream = e.streams[0];
