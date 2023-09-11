@@ -1,11 +1,31 @@
 const { RTCPeerConnection, RTCSessionDescription } = require('wrtc');
-const iceServers = [{ urls: [
-    "stun:stun.l.google.com:19302",
-    "stun:stun1.l.google.com:19302",
-    "stun:stun2.l.google.com:19302",
-    "stun:stun3.l.google.com:19302",
-    "stun:stun4.l.google.com:19302",
-]}];
+const iceServers = {
+    iceServers: [
+        {
+            urls: "stun:stun.relay.metered.ca:80",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:80",
+            username: "faa70f6f53fda5703594c0c2",
+            credential: "UJH/kAmY0wAqKcgI",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:80?transport=tcp",
+            username: "faa70f6f53fda5703594c0c2",
+            credential: "UJH/kAmY0wAqKcgI",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:443",
+            username: "faa70f6f53fda5703594c0c2",
+            credential: "UJH/kAmY0wAqKcgI",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:443?transport=tcp",
+            username: "faa70f6f53fda5703594c0c2",
+            credential: "UJH/kAmY0wAqKcgI",
+        },
+    ],
+};
 
 class RTC {
     constructor(socket) {
