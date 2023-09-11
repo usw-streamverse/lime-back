@@ -13,7 +13,7 @@ module.exports = (port) => {
         return Array.from(connections.values())
         .filter(i => i.mode === 'broadcast')
         .map(i => {
-            return { created: i.created, channel: i.userid, viewer: i.viewer, nickname: i.nickname }
+            return { created: i.created, channel: i.userid, viewer: i.viewer, nickname: i.nickname, title: i.title }
         })
     }
 
@@ -74,7 +74,7 @@ module.exports = (port) => {
                                 break;
                             case 'stream':
                                 for(const [key, i] of connections){
-                                    if(i.mode === 'broadcast'){
+                                    if(i.mode === 'broadcast' && i.userid === data.channel){
                                         i.rtc.stream.getTracks().forEach(track => {
                                             ws.rtc.remote.addTrack(track, i.rtc.stream);
                                         });
@@ -93,11 +93,9 @@ module.exports = (port) => {
                     }
                     break;
                     case 'track':
-                        if(!ws.authorized) throw new Error('unauthorized');
                         ws.send(JSON.stringify({'type': 'track', 'length': connections.length}));
                         break;
                     case 'icecandidate':
-                        if(!ws.authorized) throw new Error('unauthorized');
                         if(data.data)
                             ws.rtc.remote.addIceCandidate(new RTCIceCandidate(data.data));
                         break;
