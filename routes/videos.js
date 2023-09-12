@@ -481,7 +481,7 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
                 (error, result) => {
                     if(error) throw error;
                     if(result[0].user_id ==  req.id) {  // 재생목록에 있는 유저id 와 auth() id를 확인.
-                        db.query('INSERT INTO playlist_record (playlist_id, video_id) VALUES (?,?)', [playlist,req.params.id],
+                        db.query('INSERT INTO playlist_record (playlist_id, video_id) VALUES (?,?)', [playlist, Number(req.params.id)],
                         (error, result) => {
                         if(error) throw error;
                             res.status(200).json({
