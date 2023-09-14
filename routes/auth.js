@@ -94,7 +94,9 @@ router.post('/register', (req, res) => {
     (error, result) => {
         if(error) throw error;
         if(result.length === 0) {
-            db.query('INSERT INTO user (userid, userpwd, nickname) VALUES (?,?,?);', [userid, userpwd, nickname],
+            const r = (parseInt(Math.random() * 140)+80).toString(16), g = (parseInt(Math.random() * 140)+80).toString(16), b = (parseInt(Math.random() * 140)+80).toString(16);
+            const profile = `#${r+g+b}`;
+            db.query('INSERT INTO user (userid, userpwd, nickname, profile) VALUES (?,?,?,?);', [userid, userpwd, nickname, profile],
             (error) => {
                 if (error) throw error;
                 res.status(200).json({

@@ -163,7 +163,7 @@ router.post('/', auth(), (req, res) => {
 });
 
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, video.channel_id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    db.query('SELECT video.id, video.channel_id, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
@@ -272,7 +272,7 @@ router.post('/:id/like', auth(), (req, res) => {  //[이벤트리스너] 동영�
 });
 
 router.get('/:id/comment/:parent_id', auth(false), (req, res) => { // 답글 목록 구하기
-    db.query('SELECT user.nickname, video_comment.*, (SELECT exists (SELECT * FROM comment_like WHERE comment_id = video_comment.id and liker = ?)) as liked FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id ASC', [req.id || -1, req.params.id, req.params.parent_id],
+    db.query('SELECT user.nickname, user.profile, video_comment.*, (SELECT exists (SELECT * FROM comment_like WHERE comment_id = video_comment.id and liker = ?)) as liked FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id ASC', [req.id || -1, req.params.id, req.params.parent_id],
     (error, result) => {
         if (error) throw error;
         res.status(200).json(result);
@@ -281,7 +281,7 @@ router.get('/:id/comment/:parent_id', auth(false), (req, res) => { // 답글 목
 
 
 router.get('/:id/comment', auth(false), (req, res) => { // 댓글 목록 구하기
-    db.query('SELECT user.nickname, video_comment.*, (SELECT exists (SELECT * FROM comment_like WHERE comment_id = video_comment.id and liker = ?)) as liked FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id DESC', [req.id || -1, req.params.id, 0],
+    db.query('SELECT user.nickname, user.profile, video_comment.*, (SELECT exists (SELECT * FROM comment_like WHERE comment_id = video_comment.id and liker = ?)) as liked FROM video_comment LEFT JOIN user ON video_comment.writer = user.id WHERE video_id = ? and parent_id = ? ORDER BY id DESC', [req.id || -1, req.params.id, 0],
     (error, result) => {
         if (error) throw error;
         res.status(200).json(result);

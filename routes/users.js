@@ -23,7 +23,8 @@ router.get('/profile', auth(), (req, res) => {
                 'success': true,
                 'id': result[0].id,
                 'userid': result[0].userid,
-                'nickname': result[0].nickname
+                'nickname': result[0].nickname,
+                'profile': result[0].profile
             });
         }
     });
@@ -38,7 +39,8 @@ router.get('/:id', (req, res) => {
                 'success': true,
                 'id': result[0].id,
                 'userid': result[0].userid,
-                'nickname': result[0].nickname
+                'nickname': result[0].nickname,
+                'profile': result[0].profile
             });
         } else {
             res.status(404).json({
