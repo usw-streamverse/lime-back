@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db/db.js');
+const db2 = require('../db/db2.js');
 const router = express.Router();
 const auth = require('../middlewares/auth');
 
@@ -32,16 +33,26 @@ router.get('/profile', auth(), (req, res) => {
 
 router.get('/:id', (req, res) => {
     db.query('SELECT * FROM user WHERE userid = ?', [req.params.id], 
-    (error, result) => {
+    async (error, result) => {
         if(error) throw error;
         if(result.length) {
-            res.status(200).json({
-                'success': true,
-                'id': result[0].id,
-                'userid': result[0].userid,
-                'nickname': result[0].nickname,
-                'profile': result[0].profile
-            });
+            try {
+                const [readership] = await db2.query('SELECT count(1) as count FROM subscribe WHERE channel = ?', [result[0].id]);
+                const [video] = await db2.query('SELECT count(1) as count FROM video WHERE channel_id = ?', [result[0].id]);
+                res.status(200).json({
+                    'success': true,
+                    'id': result[0].id,
+                    'userid': result[0].userid,
+                    'nickname': result[0].nickname,
+                    'profile': result[0].profile,
+                    'readership': readership[0].count,
+                    'videoCount': video[0].count,
+                });
+            } catch(e) {
+                res.status(404).json({
+                    'success': false
+                })
+            }
         } else {
             res.status(404).json({
                 'success': false
