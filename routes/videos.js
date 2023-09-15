@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db/db.js');
+const db2 = require('../db/db2.js');
 const fs = require('fs');
 const multer = require('multer')
 const auth = require('../middlewares/auth');
@@ -55,7 +56,7 @@ const localUpload = multer({
 });
 
 router.get('/', (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.status = \'ACTIVE\' ORDER BY created DESC', 
+    db.query('SELECT video.id, user.nickname, user.profile, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.status = \'ACTIVE\' ORDER BY created DESC', 
     (error, result) => {
         if(error) throw error;
         res.status(200).json(result);
@@ -163,7 +164,7 @@ router.post('/', auth(), (req, res) => {
 });
 
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, video.channel_id, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    db.query('SELECT video.id, video.channel_id, user.userid, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
@@ -176,12 +177,14 @@ router.get('/:id', auth(false), (req, res) => {
                 (error, result2) => {
                     if(error) throw error;
                     db.query('SELECT 1 FROM subscribe WHERE subscriber = ? and channel = ?', [req.id, result[0].channel_id], 
-                    (error, result3) => {
+                    async (error, result3) => {
                         if(error) throw error;
+                        const [readership] = await db2.query('SELECT count(1) as count FROM subscribe WHERE channel = ?', [result[0].channel_id]);
                         res.status(200).json({
                             ...result[0],
                             like: result2.length > 0,
-                            subscribe: result3.length > 0
+                            subscribe: result3.length > 0,
+                            readership: readership[0].count
                         });
                     });
                 });
