@@ -29,6 +29,13 @@ module.exports = (port) => {
         ws.id = uuid();
 
         ws.on('close', (e) => {
+            for(const [key, i] of connections){
+                if(i.mode === 'broadcast' && i.userid === ws.view){
+                    i.send(JSON.stringify({'type': 'status', 'viewer': --i.viewer}));
+                    break;
+                }
+            }
+
             connections.delete(ws.id);
         });
 
@@ -78,6 +85,9 @@ module.exports = (port) => {
                                         i.rtc.stream.getTracks().forEach(track => {
                                             ws.rtc.remote.addTrack(track, i.rtc.stream);
                                         });
+                                        ws.view = i.userid;
+
+                                        i.send(JSON.stringify({'type': 'status', 'viewer': ++i.viewer}));
                                         break;
                                     }
                                 }
