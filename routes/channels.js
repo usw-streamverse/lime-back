@@ -9,7 +9,7 @@ const auth = require('../middlewares/auth.js');
 */
 
 router.get('/:id/video', (req, res) => {
-    db.query('SELECT video.id, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE user.userid = ? and video.status = \'ACTIVE\' ORDER BY created DESC', [req.params.id], 
+    db.query('SELECT video.id, user.nickname, user.profile, video.created, video.duration, video.title, video.view_count, video.thumbnail FROM video LEFT JOIN user ON video.channel_id = user.id WHERE user.userid = ? and video.status = \'ACTIVE\' ORDER BY created DESC', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         res.status(200).json(result);
