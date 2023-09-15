@@ -308,6 +308,10 @@ router.post('/:id/comment', auth(), (req, res) => { // 댓글/답글 작성
                     res.status(200).json({
                         success: true
                     });
+                    db.query('UPDATE video SET comment_count = comment_count+1 where id = ?', [req.params.id] , 
+                    (error, result) =>{
+                        if(error) throw error;
+                    });
                 });
             } else {
                 res.status(404).send();
@@ -326,6 +330,10 @@ router.post('/:id/comment', auth(), (req, res) => { // 댓글/답글 작성
                         if (error) throw error;
                         res.status(200).json({
                             success: true
+                        });
+                        db.query('UPDATE video SET comment_count = comment_count+1 where id = ?', [req.params.id] , 
+                        (error, result) =>{
+                            if(error) throw error;
                         });
                     });
                 });
@@ -387,6 +395,12 @@ router.delete('/:id/comment/:comment', auth(), (req, res) => { // 댓글 삭제 
                         res.status(200).json({
                             success: true
                         });
+                        if(result){
+                            db.query('UPDATE video SET comment_count = comment_count-?-1 where id = ?', [result.affectedRows,req.params.id] , 
+                            (error, result) =>{
+                                if(error) throw error;
+                            });
+                        }
                     });
                 });
             } else {
