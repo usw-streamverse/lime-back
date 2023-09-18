@@ -31,7 +31,7 @@ module.exports = (port) => {
         ws.on('close', (e) => {
             for(const [key, i] of connections){
                 if(i.mode === 'broadcast' && i.userid === ws.view){
-                    i.send(JSON.stringify({'type': 'status', 'viewer': --i.viewer}));
+                    i.send(JSON.stringify({type: 'status', 'viewer': --i.viewer}));
                     break;
                 }
             }
@@ -64,7 +64,13 @@ module.exports = (port) => {
                             }
                         })
                     }
-                    break
+                    break;
+                    case 'modifyTitle': {
+                        if(ws.mode !== 'broadcast') return;
+                        ws.title = data.title;
+                        ws.send(JSON.stringify({type: 'title', value: ws.title}));
+                    }
+                    break;
                     case 'offer': {
                         const newRtc = new rtc(ws);
                         ws.rtc = newRtc;
@@ -73,11 +79,12 @@ module.exports = (port) => {
                             case 'broadcast':
                                 ws.viewer = 0;
                                 ws.created = Date.now();
-                                ws.title = 'untitled';
+                                ws.title = `${ws.userid}'s live stream`;
                                 if(!ws.authorized){
                                     ws.send(JSON.stringify({type: 'error', message: '방송 송출은 로그인이 필요합니다.'}));
                                     throw new Error('unauthorized');
                                 }
+                                ws.send(JSON.stringify({type: 'title', value: ws.title}));
                                 break;
                             case 'stream':
                                 for(const [key, i] of connections){
@@ -87,7 +94,7 @@ module.exports = (port) => {
                                         });
                                         ws.view = i.userid;
 
-                                        i.send(JSON.stringify({'type': 'status', 'viewer': ++i.viewer}));
+                                        i.send(JSON.stringify({type: 'status', 'viewer': ++i.viewer}));
                                         break;
                                     }
                                 }
@@ -97,13 +104,13 @@ module.exports = (port) => {
                         }
                         newRtc.init(data.desc, (desc, error) => {
                             if(error) return;
-                            ws.send(JSON.stringify({'type': 'offer', 'desc': desc}));
+                            ws.send(JSON.stringify({type: 'offer', desc: desc}));
                             connections.set(ws.id, ws);
                         });
                     }
-                    break;
+                        break;
                     case 'track':
-                        ws.send(JSON.stringify({'type': 'track', 'length': connections.length}));
+                        ws.send(JSON.stringify({type: 'track', length: connections.length}));
                         break;
                     case 'icecandidate':
                         if(data.data)
