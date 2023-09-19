@@ -69,4 +69,4 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-module.exports = logger ;
+module.exports = { logger, stream } ;
