@@ -3,6 +3,8 @@ const app = express();
 const bodyParser = require('body-parser');
 const live_streaming = require('./live_streaming');
 const live_chat = require('./middlewares/websocket');
+const { logger, stream } = require('./middlewares/logger')
+const morgan = require('morgan')
 
 require('dotenv').config();
 
@@ -16,6 +18,7 @@ app.set('port',process.env.PORT || 3000); //process.env에 포트속성이 있�
 
 global.liveStreaming = live_streaming(4000);
 
+app.use(morgan(":method :status :url :response-time ms", { stream }));
 app.use('/', require('./routes/main')); //메인페이지
 app.use('/users', require('./routes/users')); //유저페이지
 app.use('/auth', require('./routes/auth')); //로그인페이지
