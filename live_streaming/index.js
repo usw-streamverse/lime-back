@@ -8,36 +8,89 @@ const db = require('../db/db.js');
 const db2 = require('../db/db2.js');
 const connections = new Map();
 
+WebSocket.Server.prototype.filter = function(condition, callback){
+    for(const [key, i] of this.connections){
+        if(condition(i))
+            if(callback(i) === true) break;
+    }
+}
+
+WebSocket.Server.prototype.broadcast = function(condition, data){
+    for(const [key, i] of this.connections)
+        if(condition(i.data)) i.send(data);
+}
+
+WebSocket.Server.prototype.join = function(socket){
+    socket.wss = this;
+    socket.data = {
+        uuid: uuid(),
+        authorized: false,
+        id: null,
+        userid: null,
+        nickname: null,
+        profile: null,
+        mode: null,
+        room: null,
+        streamer: null, // 시청하고 있는 streamer의 socket을 참조함 (streamer의 경우 본인)
+        status: {
+            title: null,
+            viewer: 0,
+            created: 0,
+        }
+    }
+    this.connections.set(socket.data.uuid, socket);
+}
+
+WebSocket.Server.prototype.leave = function(socket){
+    this.connections.delete(socket.data.uuid);
+}
+
+WebSocket.prototype.isStreamer = function(){
+    return this.data.mode === 'streamer';
+}
+
+WebSocket.prototype.isViewer = function(){
+    return this.data.mode === 'viewer';
+}
+
+WebSocket.prototype.broadcast = function(data){
+    for(const [key, i] of this.wss.connections)
+        if(i?.data?.room === this.data.room) i.send(data);
+}
+
+WebSocket.prototype.particpants = function(callback){
+    for(const [key, i] of this.wss.connections)
+        if(i?.data?.room === this.data.room) callback(i);
+}
+
 module.exports = (port) => {
 
     const getLiveList = () => {
         return Array.from(connections.values())
-        .filter(i => i.mode === 'broadcast')
+        .filter(i => i.isStreamer())
         .map(i => {
-            return { created: i.created, channel: i.userid, viewer: i.viewer, nickname: i.nickname, title: i.title, profile: i.profile }
+            return { created: i.data.status.created, channel: i.data.userid, viewer: i.data.status.viewer, nickname: i.data.nickname, title: i.data.status.title, profile: i.data.profile }
         })
     }
 
     const wss = new WebSocket.Server({port: port});
-    
+    wss.connections = connections;
+
+
     wss.on('listening', () => {
         console.log(`live-streaming server is running on port ${wss.options.port}`);
     });
 
     wss.on('connection', (ws, req) => {
-        ws.state = 0;
-        ws.authorized = false;
-        ws.uuid = uuid();
+        wss.join(ws);
 
         ws.on('close', (e) => {
-            for(const [key, i] of connections){
-                if(i.mode === 'broadcast' && i.userid === ws.view){
-                    i.send(JSON.stringify({type: 'status', 'viewer': --i.viewer}));
-                    break;
-                }
-            }
+            wss.leave(ws);
+            if(!ws.data.streamer) return;
+            
+            ws.data.streamer.viewer--;
 
-            connections.delete(ws.uuid);
+            ws.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.viewer}));
         });
 
         ws.on('message', (message) => {
@@ -50,15 +103,15 @@ module.exports = (port) => {
                                 ws.send(JSON.stringify({type: 'error', message: '잘못된 토큰입니다.'}));
                                 throw new Error('invalid token');
                             } else {
-                                ws.authorized = true;
-                                ws.userid = decoded.userid;
-                                ws.id = decoded.id;
+                                ws.data.authorized = true;
+                                ws.data.userid = decoded.userid;
+                                ws.data.id = decoded.id;
 
-                                db.query('SELECT * FROM user WHERE userid = ?', [ws.userid], 
+                                db.query('SELECT * FROM user WHERE userid = ?', [ws.data.userid], 
                                 (error, res) => {
                                     if(res.length){
-                                        ws.nickname = res[0].nickname;
-                                        ws.profile = res[0].profile;
+                                        ws.data.nickname = res[0].nickname;
+                                        ws.data.profile = res[0].profile;
                                         ws.send(JSON.stringify({type: 'authorization', result: true}));
                                     }else{
                                         ws.send(JSON.stringify({type: 'authorization', result: false}));
@@ -69,45 +122,39 @@ module.exports = (port) => {
                     }
                     break;
                     case 'modifyTitle': {
-                        if(ws.mode !== 'broadcast') return;                        
-                        ws.title = data.title.trim() === '' ? `${ws.userid}'s live stream` : data.title;
-                        ws.send(JSON.stringify({type: 'title', title: ws.title}));
-                        for(const [key, i] of connections){
-                            if(i.mode === 'stream' && i.view === ws.userid){
-                                i.send(JSON.stringify({type: 'title', 'title': ws.title}));
-                                break;
-                            }
-                        }
+                        if(!ws.isStreamer()) return;
+                        ws.data.status.title = data.title.trim() === '' ? `${ws.data.userid}'s live stream` : data.title;
+                        ws.broadcast({type: 'title', title: ws.data.status.title});
                     }
                     break;
                     case 'offer': {
                         const newRtc = new rtc(ws);
                         ws.rtc = newRtc;
-                        ws.mode = data.mode;
+                        ws.data.mode = data.mode;
                         switch(data.mode){
-                            case 'broadcast':
-                                ws.viewer = 0;
-                                ws.created = Date.now();
-                                ws.title = `${ws.userid}'s live stream`;
-                                if(!ws.authorized){
+                            case 'streamer':
+                                ws.data.status.viewer = 0;
+                                ws.data.status.created = Date.now();
+                                ws.data.status.title = `${ws.data.userid}'s live stream`;
+                                if(!ws.data.authorized){
                                     ws.send(JSON.stringify({type: 'error', message: '방송 송출은 로그인이 필요합니다.'}));
                                     throw new Error('unauthorized');
                                 }
-                                ws.send(JSON.stringify({type: 'title', title: ws.title}));
+                                ws.send(JSON.stringify({type: 'title', title: ws.data.status.title}));
                                 break;
-                            case 'stream':
-                                for(const [key, i] of connections){
-                                    if(i.mode === 'broadcast' && i.userid === data.channel){
-                                        i.rtc.stream.getTracks().forEach(track => {
-                                            ws.rtc.remote.addTrack(track, i.rtc.stream);
-                                        });
-                                        ws.view = i.userid;
+                            case 'viewer':
 
-                                        i.send(JSON.stringify({type: 'status', viewer: ++i.viewer}));
-                                        ws.send(JSON.stringify({type: 'title', title: i.title}));
-                                        break;
-                                    }
-                                }
+                                wss.filter((w) => w.isStreamer(),
+                                (w) => {
+                                    w.rtc.stream.getTracks().forEach(track => {
+                                        ws.rtc.remote.addTrack(track, w.rtc.stream);
+                                    });
+                                    ws.data.streamer = w;
+                                    ws.data.room = w.data.room;
+                                    w.data.status.viewer++;
+                                    w.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.data.status.viewer}));
+                                    return true;
+                                });
                                 break;
                             default:
                                 throw new Error('unknown mode');
@@ -115,7 +162,6 @@ module.exports = (port) => {
                         newRtc.init(data.desc, (desc, error) => {
                             if(error) return;
                             ws.send(JSON.stringify({type: 'offer', desc: desc}));
-                            connections.set(ws.uuid, ws);
                         });
                     }
                         break;
