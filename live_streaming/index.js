@@ -85,12 +85,11 @@ module.exports = (port) => {
         wss.join(ws);
 
         ws.on('close', (e) => {
+            if(ws.data.streamer){    
+                ws.data.streamer.status.viewer--;
+                ws.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.status.viewer}));
+            }
             wss.leave(ws);
-            if(!ws.data.streamer) return;
-            
-            ws.data.streamer.viewer--;
-
-            ws.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.viewer}));
         });
 
         ws.on('message', (message) => {
