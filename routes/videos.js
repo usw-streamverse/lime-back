@@ -163,13 +163,23 @@ router.post('/', auth(), (req, res) => {
     });
 });
 
+let buffer_count = 0;
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, video.channel_id, user.userid, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    db.query('SELECT video.id, video.channel_id, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
             res.status(404).send();
         else{
+            console.log(buffer_count);
+            db.query('INSERT INTO recent_popular_video_buffer(id) VALUES (?) ON DUPLICATE KEY UPDATE frequency = frequency + 1', [req.params.id]); //중복 시 update (frequency +1) , 없으면 insert
+            buffer_count ++;
+            if (buffer_count == 10){ //동영상 재생을 10회 했다면
+                db.query('INSERT INTO recent_popular_video(id, frequency) SELECT id, frequency FROM recent_popular_video_buffer WHERE frequency = (SELECT MAX(frequency) from recent_popular_video_buffer)');
+                db.query('UPDATE recent_popular_video SET share = (SELECT(MAX(frequency_ratio)) FROM (SELECT frequency / SUM(frequency) OVER() AS frequency_ratio FROM recent_popular_video_buffer) AS max_frequency_ratio) WHERE id = (SELECT id from recent_popular_video_buffer WHERE frequency = (SELECT MAX(frequency) from recent_popular_video_buffer))')
+                db.query('delete from recent_popular_video_buffer');
+                buffer_count = 0;
+            }
             db.query('UPDATE video SET view_count = ? WHERE id = ?', [result[0].view_count += 1, result[0].id]);
              if(req.id){
                 //로그인한 경우 좋아요 여부와 채널의 구독 여부 검사
@@ -177,14 +187,12 @@ router.get('/:id', auth(false), (req, res) => {
                 (error, result2) => {
                     if(error) throw error;
                     db.query('SELECT 1 FROM subscribe WHERE subscriber = ? and channel = ?', [req.id, result[0].channel_id], 
-                    async (error, result3) => {
+                    (error, result3) => {
                         if(error) throw error;
-                        const [readership] = await db2.query('SELECT count(1) as count FROM subscribe WHERE channel = ?', [result[0].channel_id]);
                         res.status(200).json({
                             ...result[0],
                             like: result2.length > 0,
-                            subscribe: result3.length > 0,
-                            readership: readership[0].count
+                            subscribe: result3.length > 0
                         });
                     });
                 });
