@@ -5,6 +5,7 @@ const { v1: uuid } = require('uuid');
 const jwt = require('jsonwebtoken');
 const jwt_config = require('../config/jwt.js');
 const db = require('../db/db.js');
+const db2 = require('../db/db2.js');
 const connections = new Map();
 
 module.exports = (port) => {
@@ -13,7 +14,7 @@ module.exports = (port) => {
         return Array.from(connections.values())
         .filter(i => i.mode === 'broadcast')
         .map(i => {
-            return { created: i.created, channel: i.userid, viewer: i.viewer, nickname: i.nickname, title: i.title }
+            return { created: i.created, channel: i.userid, viewer: i.viewer, nickname: i.nickname, title: i.title, profile: i.profile }
         })
     }
 
@@ -26,7 +27,7 @@ module.exports = (port) => {
     wss.on('connection', (ws, req) => {
         ws.state = 0;
         ws.authorized = false;
-        ws.id = uuid();
+        ws.uuid = uuid();
 
         ws.on('close', (e) => {
             for(const [key, i] of connections){
@@ -36,7 +37,7 @@ module.exports = (port) => {
                 }
             }
 
-            connections.delete(ws.id);
+            connections.delete(ws.uuid);
         });
 
         ws.on('message', (message) => {
@@ -44,18 +45,20 @@ module.exports = (port) => {
                 const data = JSON.parse(message.toString());
                 switch(data.type){
                     case 'authorization': {
-                        jwt.verify(data.token, jwt_config.secretKey, (error, decoded) => {
+                        jwt.verify(data.token, jwt_config.secretKey, async (error, decoded) => {
                             if(error) {
                                 ws.send(JSON.stringify({type: 'error', message: '잘못된 토큰입니다.'}));
                                 throw new Error('invalid token');
                             } else {
                                 ws.authorized = true;
                                 ws.userid = decoded.userid;
+                                ws.id = decoded.id;
 
                                 db.query('SELECT * FROM user WHERE userid = ?', [ws.userid], 
                                 (error, res) => {
                                     if(res.length){
                                         ws.nickname = res[0].nickname;
+                                        ws.profile = res[0].profile;
                                         ws.send(JSON.stringify({type: 'authorization', result: true}));
                                     }else{
                                         ws.send(JSON.stringify({type: 'authorization', result: false}));
@@ -66,9 +69,15 @@ module.exports = (port) => {
                     }
                     break;
                     case 'modifyTitle': {
-                        if(ws.mode !== 'broadcast') return;
-                        ws.title = data.title;
-                        ws.send(JSON.stringify({type: 'title', value: ws.title}));
+                        if(ws.mode !== 'broadcast') return;                        
+                        ws.title = data.title.trim() === '' ? `${ws.userid}'s live stream` : data.title;
+                        ws.send(JSON.stringify({type: 'title', title: ws.title}));
+                        for(const [key, i] of connections){
+                            if(i.mode === 'stream' && i.view === ws.userid){
+                                i.send(JSON.stringify({type: 'title', 'title': ws.title}));
+                                break;
+                            }
+                        }
                     }
                     break;
                     case 'offer': {
@@ -84,7 +93,7 @@ module.exports = (port) => {
                                     ws.send(JSON.stringify({type: 'error', message: '방송 송출은 로그인이 필요합니다.'}));
                                     throw new Error('unauthorized');
                                 }
-                                ws.send(JSON.stringify({type: 'title', value: ws.title}));
+                                ws.send(JSON.stringify({type: 'title', title: ws.title}));
                                 break;
                             case 'stream':
                                 for(const [key, i] of connections){
@@ -94,7 +103,8 @@ module.exports = (port) => {
                                         });
                                         ws.view = i.userid;
 
-                                        i.send(JSON.stringify({type: 'status', 'viewer': ++i.viewer}));
+                                        i.send(JSON.stringify({type: 'status', viewer: ++i.viewer}));
+                                        ws.send(JSON.stringify({type: 'title', title: i.title}));
                                         break;
                                     }
                                 }
@@ -105,7 +115,7 @@ module.exports = (port) => {
                         newRtc.init(data.desc, (desc, error) => {
                             if(error) return;
                             ws.send(JSON.stringify({type: 'offer', desc: desc}));
-                            connections.set(ws.id, ws);
+                            connections.set(ws.uuid, ws);
                         });
                     }
                         break;
