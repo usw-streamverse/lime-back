@@ -183,7 +183,7 @@ router.get('/:id', auth(false), (req, res) => {
                         res.status(200).json({
                             ...result[0],
                             like: result2.length > 0,
-                            subscribe: result3.length > 0,
+                            subscribed: result3.length > 0,
                             readership: readership[0].count
                         });
                     });
