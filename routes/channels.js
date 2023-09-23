@@ -76,7 +76,7 @@ router.post('/playlist', auth(), (req, res) => {  // 재생목록을 만듬
 });
 
 router.get('/playlist', auth(), (req, res) => {  // 재생목록을 확인하는 기능
-    db.query('SELECT playlist.id, playlist.name, playlist.created, count(playlist_item.video_id) as count FROM playlist LEFT JOIN playlist_item ON playlist.id = playlist_item.playlist_id WHERE user_id = ? GROUP BY playlist.id ORDER BY playlist.created DESC', [req.id], 
+    db.query('SELECT playlist.id, playlist.name, playlist.created, COUNT(playlist_item.playlist_id) AS count, (SELECT video.thumbnail FROM video LEFT JOIN playlist_item ON playlist_item.video_id = video.id WHERE playlist_item.playlist_id = playlist.id ORDER BY playlist_item.created DESC LIMIT 1) AS thumbnail FROM playlist LEFT JOIN playlist_item ON playlist.id = playlist_item.playlist_id WHERE user_id = ? GROUP BY playlist.id ORDER BY playlist.created DESC ', [req.id], 
         async (error, result) => {
             if(error) throw error;
             res.status(200).json(result);
