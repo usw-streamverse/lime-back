@@ -171,7 +171,6 @@ router.get('/:id', auth(false), (req, res) => {
         if(result.length == 0)
             res.status(404).send([]);
         else{
-            console.log(buffer_count);
             db.query('INSERT INTO recent_popular_video_buffer(id) VALUES (?) ON DUPLICATE KEY UPDATE frequency = frequency + 1', [req.params.id]); //중복 시 update (frequency +1) , 없으면 insert
             buffer_count ++;
             if (buffer_count == 10){ //동영상 재생을 10회 했다면
@@ -495,7 +494,7 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
     db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
     (error, result) => {
         if(error) throw error;
-        db.query('SELECT * FROM playlist_record WHERE playlist_id = ? AND video_id = ?', [playlist,req.params.id], // 비디오가 이미 재생목록에 있는지 확인.
+        db.query('SELECT * FROM playlist_item WHERE playlist_id = ? AND video_id = ?', [playlist,req.params.id], // 비디오가 이미 재생목록에 있는지 확인.
         (error, result) => {
             if(error) throw error;
             if(result.length){    // 재생목록에 존재함.
@@ -508,7 +507,7 @@ router.post('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목�
                 (error, result) => {
                     if(error) throw error;
                     if(result[0].user_id ==  req.id) {  // 재생목록에 있는 유저id 와 auth() id를 확인.
-                        db.query('INSERT INTO playlist_record (playlist_id, video_id) VALUES (?,?)', [playlist, Number(req.params.id)],
+                        db.query('INSERT INTO playlist_item (playlist_id, video_id) VALUES (?,?)', [playlist, Number(req.params.id)],
                         (error, result) => {
                         if(error) throw error;
                             res.status(200).json({
@@ -532,11 +531,11 @@ router.delete('/:id/playlist', auth(), (req, res) => {  //비디오를 재생목
     db.query('SELECT id FROM video WHERE id = ?', [req.params.id], // 비디오 고유 id확인
     (error, result) => {
         if(error) throw error;
-        db.query('SELECT * FROM playlist_record WHERE playlist_id = ? AND video_id = ?', [playlist,req.params.id], // 비디오가 재생목록에 있는지 확인.
+        db.query('SELECT * FROM playlist_item WHERE playlist_id = ? AND video_id = ?', [playlist,req.params.id], // 비디오가 재생목록에 있는지 확인.
         (error, result) => {
             if(error) throw error;
             if(result.length){    // 재생목록에 존재할 시 DB에서 삭제.
-                db.query('DELETE FROM playlist_record WHERE playlist_id = ? AND video_id = ?', [playlist, req.params.id],  // 테이블 값 삭제
+                db.query('DELETE FROM playlist_item WHERE playlist_id = ? AND video_id = ?', [playlist, req.params.id],  // 테이블 값 삭제
                 (error) =>{
                     if(error) throw error;
                     res.status(200).json({
