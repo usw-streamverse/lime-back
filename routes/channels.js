@@ -76,11 +76,12 @@ router.post('/playlist', auth(), (req, res) => {  // 재생목록을 만듬
 });
 
 router.get('/playlist', auth(), (req, res) => {  // 재생목록을 확인하는 기능
-    db.query('SELECT id, name FROM playlist WHERE user_id = ? ORDER BY created DESC', [req.id], // 유저 확인 
-        (error, result) => {
+    db.query('SELECT playlist.id, playlist.name, playlist.created, count(playlist_item.video_id) as count FROM playlist LEFT JOIN playlist_item ON playlist.id = playlist_item.playlist_id WHERE user_id = ? GROUP BY playlist.id ORDER BY playlist.created DESC', [req.id], 
+        async (error, result) => {
             if(error) throw error;
             res.status(200).json(result);
-        });
+        }
+    );
 });
 
 module.exports = router;
