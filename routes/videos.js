@@ -174,8 +174,7 @@ router.get('/:id', auth(false), (req, res) => {
             db.query('INSERT INTO recent_popular_video_buffer(id) VALUES (?) ON DUPLICATE KEY UPDATE frequency = frequency + 1', [req.params.id]); //중복 시 update (frequency +1) , 없으면 insert
             buffer_count ++;
             if (buffer_count == 10){ //동영상 재생을 10회 했다면
-                db.query('INSERT INTO recent_popular_video(id, frequency) SELECT id, frequency FROM recent_popular_video_buffer WHERE frequency = (SELECT MAX(frequency) from recent_popular_video_buffer)');
-                db.query('UPDATE recent_popular_video SET share = (SELECT(MAX(frequency_ratio)) FROM (SELECT frequency / SUM(frequency) OVER() AS frequency_ratio FROM recent_popular_video_buffer) AS max_frequency_ratio) WHERE id = (SELECT id from recent_popular_video_buffer WHERE frequency = (SELECT MAX(frequency) from recent_popular_video_buffer))')
+                db.query('INSERT INTO recent_popular_video(video_id, frequency, share) SELECT id, frequency, (SELECT(MAX(frequency_ratio)) FROM (SELECT frequency / SUM(frequency) OVER() AS frequency_ratio FROM recent_popular_video_buffer) AS max_frequency_ratio) as share FROM recent_popular_video_buffer WHERE frequency = (SELECT MAX(frequency) from recent_popular_video_buffer)');
                 db.query('delete from recent_popular_video_buffer');
                 buffer_count = 0;
             }
