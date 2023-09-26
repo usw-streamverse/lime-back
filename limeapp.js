@@ -19,7 +19,7 @@ app.use(express.static(`${__dirname}/live_streaming`));
 
 global.liveStreaming = live_streaming(server);
 
-//app.use(morgan(":remote-addr :method :status :url :response-time ms", { stream }));
+app.use(morgan(":remote-addr :method :status :url :response-time ms", { stream }));
 app.use('/', require('./routes/main')); //메인페이지
 app.use('/users', require('./routes/users')); //유저페이지
 app.use('/auth', require('./routes/auth')); //로그인페이지
