@@ -2,6 +2,7 @@ const express = require('express'); //익스프레스 모듈 삽입
 const app = express();
 const bodyParser = require('body-parser');
 const live_streaming = require('./live_streaming');
+const server = require('http').createServer();
 const live_chat = require('./middlewares/websocket');
 const { logger, stream } = require('./middlewares/logger')
 const morgan = require('morgan')
@@ -14,11 +15,11 @@ app.use(bodyParser.urlencoded({extended: false}));
 
 app.use(express.static(`${__dirname}/live_streaming`));
 
-app.set('port',process.env.PORT || 3000); //process.env에 포트속성이 있다면 사용, 아니라면 3000.
+//app.set('port',process.env.PORT || 80); //process.env에 포트속성이 있다면 사용, 아니라면 3000.
 
-global.liveStreaming = live_streaming(4000);
+global.liveStreaming = live_streaming(server);
 
-app.use(morgan(":remote-addr :method :status :url :response-time ms", { stream }));
+//app.use(morgan(":remote-addr :method :status :url :response-time ms", { stream }));
 app.use('/', require('./routes/main')); //메인페이지
 app.use('/users', require('./routes/users')); //유저페이지
 app.use('/auth', require('./routes/auth')); //로그인페이지
@@ -33,8 +34,13 @@ app.use((req, res, nest) => { //찾을 수 없다면.
    res.status(404).send('Not Found');
 })
 
-app.listen(app.get('port'), () => {
-   console.log(`lime-backend is running on port ${app.get('port')}`);
+server.on('request', app);
+server.listen(process.env.PORT || 80, () => {
+   console.log('server is running on port 80');
 });
 
-live_chat(3001);
+/*app.listen(app.get('port'), () => {
+   console.log(`lime-backend is running on port ${app.get('port')}`);
+});*/
+
+//live_chat(3001);

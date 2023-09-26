@@ -63,7 +63,7 @@ WebSocket.prototype.particpants = function(callback){
         if(i?.data?.room === this.data.room) callback(i);
 }
 
-module.exports = (port) => {
+module.exports = (server) => {
 
     const getLiveList = () => {
         return Array.from(connections.values())
@@ -73,7 +73,7 @@ module.exports = (port) => {
         })
     }
 
-    const wss = new WebSocket.Server({port: port});
+    const wss = new WebSocket.Server({server: server});
     wss.connections = connections;
 
 
@@ -86,8 +86,8 @@ module.exports = (port) => {
 
         ws.on('close', (e) => {
             if(ws.data.streamer){    
-                ws.data.streamer.status.viewer--;
-                ws.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.status.viewer}));
+                ws.data.streamer.data.status.viewer--;
+                ws.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.data.status.viewer}));
             }
             wss.leave(ws);
         });
@@ -123,7 +123,7 @@ module.exports = (port) => {
                     case 'modifyTitle': {
                         if(!ws.isStreamer()) return;
                         ws.data.status.title = data.title.trim() === '' ? `${ws.data.userid}'s live stream` : data.title;
-                        ws.broadcast({type: 'title', title: ws.data.status.title});
+                        ws.broadcast(JSON.stringify({type: 'title', title: ws.data.status.title}));
                     }
                     break;
                     case 'offer': {
@@ -150,6 +150,7 @@ module.exports = (port) => {
                                     });
                                     ws.data.streamer = w;
                                     ws.data.room = w.data.room;
+                                    ws.send(JSON.stringify({type: 'title', title: w.data.status.title}));
                                     w.data.status.viewer++;
                                     w.broadcast(JSON.stringify({type: 'status', 'viewer': ws.data.streamer.data.status.viewer}));
                                     return true;
