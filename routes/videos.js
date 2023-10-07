@@ -175,10 +175,10 @@ router.get('/:id', auth(false), (req, res) => {
             buffer_count ++;
             console.log(buffer_count);
             if (buffer_count == 10){ //동영상 재생을 10회 했다면
-                db.query('insert into recent_popular_video(video_id, frequency) (select id, frequency from recent_popular_video_buffer where frequency = (select max(frequency) from recent_popular_video_buffer));',
+                db.query('insert into recent_popular_video(id, frequency) (select id, frequency from recent_popular_video_buffer where frequency = (select max(frequency) from recent_popular_video_buffer));',
                 (error) => {
                     if(error) throw error;
-                    db.query('update recent_popular_video set share = (select max(frequency)/sum(frequency) from recent_popular_video_buffer) where id = (select latest_id from (select max(id) as latest_id from recent_popular_video) A);',
+                    db.query('update recent_popular_video set share = (select max(frequency)/sum(frequency) from recent_popular_video_buffer) where count = (select latest_id from (select max(count) as latest_id from recent_popular_video) A);',
                         (error) => {
                             if(error) throw error;
                             db.query('delete from recent_popular_video_buffer',
