@@ -165,6 +165,24 @@ router.post('/', auth(), (req, res) => {
 
 let buffer_count = 0;
 router.get('/:id', auth(false), (req, res) => {
+    db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id, req.params.id],
+        (error, result) =>{  
+            if(error) throw error;
+            if (result.length){ //이미 시청한 적이 있는 경우
+                db.query('UPDATE record SET updated = CURRENT_TIMESTAMP WHERE user_id = ? and video_id = ? ', [req.id, req.params.id]); 
+            }
+            else{
+                db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
+                (error, result) => {
+                    db.query('INSERT INTO record(user_id, video_id) VALUES (?,?)', [req.id, result[0].id],                
+                    (error) =>{
+                        if(error) throw error; 
+                    });
+                    
+                });
+            }
+        });
+    
     db.query('SELECT video.id, video.channel_id, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
