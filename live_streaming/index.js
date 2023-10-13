@@ -100,7 +100,7 @@ module.exports = (server) => {
                         jwt.verify(data.token, jwt_config.secretKey, async (error, decoded) => {
                             if(error) {
                                 ws.send(JSON.stringify({type: 'error', message: '잘못된 토큰입니다.'}));
-                                throw new Error('invalid token');
+                                return;//throw new Error('invalid token');
                             } else {
                                 ws.data.authorized = true;
                                 ws.data.userid = decoded.userid;
@@ -126,6 +126,11 @@ module.exports = (server) => {
                         ws.broadcast(JSON.stringify({type: 'title', title: ws.data.status.title}));
                     }
                     break;
+                    case 'chat': {
+                        if(!ws.data.authorized) return;
+                        ws.broadcast(JSON.stringify({type: 'chat', nickname: ws.data.nickname, profile: ws.data.profile, broadcaster: ws.data.streamer.data.userid === ws.data.userid, text: data.text}));
+                    }
+                    break;
                     case 'offer': {
                         const newRtc = new rtc(ws);
                         ws.rtc = newRtc;
@@ -137,7 +142,7 @@ module.exports = (server) => {
                                 ws.data.status.title = `${ws.data.userid}'s live stream`;
                                 if(!ws.data.authorized){
                                     ws.send(JSON.stringify({type: 'error', message: '방송 송출은 로그인이 필요합니다.'}));
-                                    throw new Error('unauthorized');
+                                    return;//throw new Error('unauthorized');
                                 }
                                 ws.send(JSON.stringify({type: 'title', title: ws.data.status.title}));
                                 break;
@@ -146,7 +151,7 @@ module.exports = (server) => {
                                 wss.filter((w) => w.isStreamer(),
                                 (w) => {
                                     w.rtc.stream.getTracks().forEach(track => {
-                                        ws.rtc.remote.addTrack(track, w.rtc.stream);
+                                        //ws.rtc.remote.addTrack(track, w.rtc.stream);
                                     });
                                     ws.data.streamer = w;
                                     ws.data.room = w.data.room;
@@ -157,7 +162,7 @@ module.exports = (server) => {
                                 });
                                 break;
                             default:
-                                throw new Error('unknown mode');
+                                return;//throw new Error('unknown mode');
                         }
                         newRtc.init(data.desc, (desc, error) => {
                             if(error) return;
