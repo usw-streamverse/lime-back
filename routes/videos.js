@@ -165,18 +165,49 @@ router.post('/', auth(), (req, res) => {
 
 let buffer_count = 0;
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT video.id, video.channel_id, user.userid, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
+    db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id, req.params.id],
+        (error, result) =>{  
+            if(error) throw error;
+            if (result.length){ //이미 시청한 적이 있는 경우
+                db.query('UPDATE record SET updated = CURRENT_TIMESTAMP WHERE user_id = ? and video_id = ? ', [req.id, req.params.id]); 
+            }
+            else{
+                db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
+                (error, result) => {
+                    db.query('INSERT INTO record(user_id, video_id) VALUES (?,?)', [req.id, result[0].id],                
+                    (error) =>{
+                        if(error) throw error; 
+                    });
+                    
+                });
+            }
+        });
+    
+    db.query('SELECT video.id, video.channel_id, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {
         if(error) throw error;
         if(result.length == 0)
-            res.status(404).send([]);
+            res.status(404).send();
         else{
             db.query('INSERT INTO recent_popular_video_buffer(id) VALUES (?) ON DUPLICATE KEY UPDATE frequency = frequency + 1', [req.params.id]); //중복 시 update (frequency +1) , 없으면 insert
             buffer_count ++;
+            console.log(buffer_count);
             if (buffer_count == 10){ //동영상 재생을 10회 했다면
-                db.query('INSERT INTO recent_popular_video(video_id, frequency, share) SELECT id, frequency, (SELECT(MAX(frequency_ratio)) FROM (SELECT frequency / SUM(frequency) OVER() AS frequency_ratio FROM recent_popular_video_buffer) AS max_frequency_ratio) as share FROM recent_popular_video_buffer WHERE frequency = (SELECT MAX(frequency) from recent_popular_video_buffer)');
-                db.query('delete from recent_popular_video_buffer');
-                buffer_count = 0;
+                db.query('insert into recent_popular_video(id, frequency) (select id, frequency from recent_popular_video_buffer where frequency = (select max(frequency) from recent_popular_video_buffer));',
+                (error) => {
+                    if(error) throw error;
+                    db.query('update recent_popular_video set share = (select max(frequency)/sum(frequency) from recent_popular_video_buffer) where count = (select latest_id from (select max(count) as latest_id from recent_popular_video) A);',
+                        (error) => {
+                            if(error) throw error;
+                            db.query('delete from recent_popular_video_buffer',
+                            (error) => {
+                                if(error) throw error;
+                                console.log('카운트, 버퍼테이블 초기화');
+                                buffer_count = 0;
+                            });
+                        }
+                    );
+                }); 
             }
             db.query('UPDATE video SET view_count = ? WHERE id = ?', [result[0].view_count += 1, result[0].id]);
              if(req.id){

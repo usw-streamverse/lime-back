@@ -6,6 +6,9 @@ const server = require('http').createServer();
 const live_chat = require('./middlewares/websocket');
 const { logger, stream } = require('./middlewares/logger')
 const morgan = require('morgan')
+const daily_account = require('./routes/daily_account');
+const db = require('./db/db.js');
+db.query('delete from recent_popular_video_buffer');
 
 require('dotenv').config();
 

@@ -9,7 +9,7 @@ if(month/10 < 1){
     month = '0' + month 
 }
 let date = today.getDate();  // 날짜
-let day = year  + '-' + month + '-' + (date ); // date는 실행일 기준 -1해야함.
+let day = year  + '-' + month + '-' + (String(date).padStart(2, "0")); // date는 실행일 기준 -1해야함.
 
 
 fs.readFile(`../logs/${day}.log`, 'utf-8',function(err, data) {
