@@ -1,7 +1,7 @@
 var cron = require('node-cron');
 const db = require('../db/db.js');
-const router = express.Router();
 const express = require('express');
+const router = express.Router();
 
 var daily_best;
 cron.schedule('* * * * *', () => {  // 테스트용으로 1분마다 실행. 실전 : 매일 자정 05분에 실행 = '5 0 * * *' 
