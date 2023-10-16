@@ -16,8 +16,10 @@ cron.schedule('* * * * *', () => {  // 테스트용으로 1분마다 실행. 실
     });
   });
 
-  router.get('/', (req, res) => {
+router.get('/', (req, res) => {
     res.status(200).json({
         "best": daily_best
     })
 });
+
+module.exports = router;
