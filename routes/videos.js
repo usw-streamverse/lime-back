@@ -165,7 +165,8 @@ router.post('/', auth(), (req, res) => {
 
 let buffer_count = 0;
 router.get('/:id', auth(false), (req, res) => {
-    db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id, req.params.id],
+    if(req.id){
+        db.query('SELECT * FROM record WHERE user_id = ? and video_id = ?', [req.id, req.params.id],
         (error, result) =>{  
             if(error) throw error;
             if (result.length){ //이미 시청한 적이 있는 경우
@@ -182,6 +183,7 @@ router.get('/:id', auth(false), (req, res) => {
                 });
             }
         });
+    }
     
     db.query('SELECT video.id, video.channel_id, user.profile, user.nickname, video.created, video.duration, video.title, video.view_count, video.thumbnail, video.url, video.explanation, video.like_count, video.view_count FROM video LEFT JOIN user ON video.channel_id = user.id WHERE video.id = ?', [req.params.id], 
     (error, result) => {

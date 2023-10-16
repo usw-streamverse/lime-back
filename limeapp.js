@@ -6,8 +6,8 @@ const server = require('http').createServer();
 const live_chat = require('./middlewares/websocket');
 const { logger, stream } = require('./middlewares/logger')
 const morgan = require('morgan')
-const daily_account = require('./routes/daily_account');
 const db = require('./db/db.js');
+var schedule = require("./middlewares/logdb");
 db.query('delete from recent_popular_video_buffer');
 
 require('dotenv').config();
@@ -32,6 +32,9 @@ app.use('/search', require('./routes/search')); //검색
 app.use('/subscribe', require('./routes/subscribe')); // 구독
 app.use('/record', require('./routes/record')); // 구독
 app.use('/live', require('./routes/live')); // 라이브
+schedule.schedule_job(); // 로그 24시 자정마다 남기기
+app.use('/daily',require('./routes/daily_account'));// 데일리 어카운트
+
 
 app.use((req, res, nest) => { //찾을 수 없다면.
    res.status(404).send('Not Found');
