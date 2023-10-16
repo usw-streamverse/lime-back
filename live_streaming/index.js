@@ -151,7 +151,7 @@ module.exports = (server) => {
                                 wss.filter((w) => w.isStreamer(),
                                 (w) => {
                                     w.rtc.stream.getTracks().forEach(track => {
-                                        //ws.rtc.remote.addTrack(track, w.rtc.stream);
+                                        ws.rtc.remote.addTrack(track, w.rtc.stream);
                                     });
                                     ws.data.streamer = w;
                                     ws.data.room = w.data.room;
