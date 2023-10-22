@@ -175,6 +175,7 @@ router.get('/:id', auth(false), (req, res) => {
             else{
                 db.query('SELECT video.id FROM video WHERE id = ?;', [req.params.id],
                 (error, result) => {
+                    if(result.length === 0) return;
                     db.query('INSERT INTO record(user_id, video_id) VALUES (?,?)', [req.id, result[0].id],                
                     (error) =>{
                         if(error) throw error; 
